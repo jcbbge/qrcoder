@@ -4,21 +4,15 @@ import fetch from 'node-fetch';
 // Load Shopify credentials from environment variables
 const shopName = process.env.SHOPIFY_SHOP_NAME;
 const accessToken = process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
-
-console.log('🔥 SHOPIFY INIT: Starting Shopify client initialization');
-console.log('🔥 SHOPIFY INIT: Shop name present:', !!shopName);
-console.log('🔥 SHOPIFY INIT: Access token present:', !!accessToken);
+const SHOPIFY_API_VERSION = '2023-10';
 
 // Check if credentials are set
 if (!shopName || !accessToken) {
   console.error('🚨 SHOPIFY INIT ERROR: SHOPIFY_SHOP_NAME and SHOPIFY_ADMIN_API_ACCESS_TOKEN must be set in .env file');
-} else {
-  console.log(`✅ SHOPIFY INIT SUCCESS: API configured for shop: ${shopName}`);
 }
 
 // Shopify API base URL - using latest version
-const SHOPIFY_API_URL = `https://${shopName}.myshopify.com/admin/api/2023-10/graphql.json`;
-console.log('🔥 SHOPIFY INIT: API URL configured:', SHOPIFY_API_URL);
+const SHOPIFY_API_URL = `https://${shopName}.myshopify.com/admin/api/${SHOPIFY_API_VERSION}/graphql.json`;
 
 /**
  * Execute a GraphQL query against the Shopify API
@@ -1002,6 +996,7 @@ export async function getAllProductIds(vendorFilter = null) {
   let cursor = null;
   const limit = 250; // Maximum allowed by Shopify
   const allProductIds = [];
+  const DEV_MAX_PRODUCTS = 500;
 
   // Loop through all pages
   while (hasNextPage) {
@@ -1032,8 +1027,9 @@ export async function getAllProductIds(vendorFilter = null) {
     cursor = data.products.pageInfo.endCursor;
 
     // Safety break for testing
-    if (process.env.NODE_ENV === 'development' && allProductIds.length > 500) {
-      console.log(`[Shopify API] Development mode: Stopping after 500 products to prevent excessive API calls`);
+    if (process.env.NODE_ENV === 'development' && allProductIds.length >= DEV_MAX_PRODUCTS) {
+      console.log(`[Shopify API] Development mode: Stopping after ${DEV_MAX_PRODUCTS} products to prevent excessive API calls`);
+      allProductIds.length = DEV_MAX_PRODUCTS;
       break;
     }
   }

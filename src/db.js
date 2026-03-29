@@ -224,7 +224,7 @@ export const productCards = {
     try {
       const query = `
         UPDATE product_cards
-        SET status = 'downloaded', downloaded_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        SET status = 'printed', downloaded_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = ANY($1::text[])
       `;
       const result = await execute(query, [cardIds.map(id => String(id))]); // Ensure IDs are strings
@@ -577,20 +577,8 @@ export const queues = {
 
 // Modify execute function to include validation
 export async function execute(query, params = []) {
-  console.log('[NEON-DB] Executing query:', {
-    query: query.replace(/\s+/g, ' ').trim(),
-    params: params,
-    timestamp: new Date().toISOString()
-  });
-
   try {
     const result = await pool.query(query, params);
-    console.log('[NEON-DB] Query result:', {
-      command: result.command,
-      rowCount: result.rowCount,
-      timestamp: new Date().toISOString(),
-      firstRow: result.rows?.[0] ? JSON.stringify(result.rows[0]).slice(0, 200) + '...' : null
-    });
     return result;
   } catch (error) {
     console.error('[NEON-DB] Query failed:', {
