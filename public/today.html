@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Today's Sync Activity</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/js/services/SyncLogFeed.css">
+  <style>
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .section {
+      margin-bottom: 30px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      background-color: var(--card-color);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .section-header h2 {
+      margin: 0;
+      color: var(--secondary-color);
+      font-size: 1.4em;
+    }
+
+    .sync-controls {
+      text-align: right;
+    }
+
+    #syncAllButton {
+      padding: 8px 16px;
+      background-color: var(--success-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    #syncAllButton:hover {
+      background-color: #27ae60;
+    }
+
+    #syncAllButton:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    #lastSyncStatus {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.8em;
+      margin-top: 6px;
+    }
+
+    .sync-log-feed-container {
+      display: grid;
+      grid-template-columns: 60% 40%;
+      gap: 24px;
+    }
+
+    .time-header {
+      font-size: 24px;
+      color: #2c3e50;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Today's Sync Activity</h1>
+      <p>View and manage product synchronization across all vendors</p>
+    </header>
+
+    <div class="sync-log-feed-container">
+      <div class="section">
+        <div class="section-header">
+          <h2>Batched Queues</h2>
+        </div>
+        <div class="batched-queues" id="batchedQueues">
+          <!-- Batched queues will be populated here -->
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2>Sync Logs</h2>
+          <div class="sync-controls">
+            <button id="syncAllButton">Sync All Vendors</button>
+            <span id="lastSyncStatus"></span>
+          </div>
+        </div>
+        <sync-log-feed id="todaySyncLogs"></sync-log-feed>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Services -->
+  <script src="/js/services/SyncLogService.js"></script>
+
+  <!-- Load Components -->
+  <script src="/js/SyncLogFeed.js"></script>
+
+  <script>
+    // Initialize services
+    const syncLogService = new SyncLogService();
+
+    // Get UI elements
+    const syncLogFeed = document.getElementById('todaySyncLogs');
+    const syncAllButton = document.getElementById('syncAllButton');
+    const lastSyncStatus = document.getElementById('lastSyncStatus');
+    const batchedQueues = document.getElementById('batchedQueues');
+
+    // Configure sync log feed to show vendor names
+    syncLogFeed.setShowVendorName(true);
+
+    /**
+     * Update today's sync logs
+     */
+    async function updateTodayLogs() {
+      try {
+        const logs = await syncLogService.fetchTodayLogs();
+        syncLogFeed.setLogs(logs);
+
+        // Update last sync status if we have logs
+        if (logs.length > 0) {
+          const lastSync = logs[0];
+          const lastSyncTime = new Date(lastSync.run_at).toLocaleString('en-US', {
+            month: 'numeric',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+          lastSyncStatus.textContent = `Last sync: ${lastSyncTime}`;
+        }
+      } catch (error) {
+        console.error('Error updating today logs:', error);
+        lastSyncStatus.textContent = 'Error loading sync status';
+      }
+    }
+
+    /**
+     * Handle sync all button click
+     */
+    async function handleSyncAll() {
+      syncAllButton.disabled = true;
+      syncAllButton.textContent = 'Syncing All Vendors...';
+
+      try {
+        const response = await fetch('/api/sync/all', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.details || 'Failed to sync vendors');
+        }
+
+        const result = await response.json();
+
+        // Show toast with sync results
+        let message = result.summary;
+        if (result.status === 'partial') {
+          message += '\n\nSome vendors failed to sync. Check logs for details.';
+        } else if (result.status === 'failure') {
+          message += '\n\nAll vendor syncs failed. Check logs for details.';
+        }
+
+        showToast(message, result.status === 'failure');
+
+        // Wait a moment for sync logs to be written then refresh
+        setTimeout(updateTodayLogs, 1000);
+
+      } catch (error) {
+        console.error('Error syncing all vendors:', error);
+        showToast('Failed to sync vendors: ' + error.message, true);
+      } finally {
+        syncAllButton.disabled = false;
+        syncAllButton.textContent = 'Sync All Vendors';
+      }
+    }
+
+    // Add event listeners
+    syncAllButton.addEventListener('click', handleSyncAll);
+
+    // Load initial logs
+    updateTodayLogs();
+
+    // Refresh logs periodically
+    setInterval(updateTodayLogs, 30000); // Every 30 seconds
+  </script>
+</body>
+</html>

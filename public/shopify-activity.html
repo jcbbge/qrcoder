@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopify Activity - QR Code Generator</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/js/ProductCard.css">
+  <link rel="stylesheet" href="/js/PageDesigner.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Harding Academy QR Code Buddy</h1>
+      <p class="subtitle">Track and manage QR code generation for artists and artwork</p>
+      <nav class="main-nav">
+        <div class="tab-buttons">
+          <a href="/" class="tab-button">Dashboard</a>
+          <!-- <a href="/ready-to-print.html" class="tab-button">Ready to Print</a> -->
+          <!-- <a href="/print-history.html" class="tab-button">Print History</a> -->
+          <!-- <a href="/status-overview.html" class="tab-button">Status Overview</a> -->
+          <a href="/shopify-activity.html" class="tab-button active">Shopify Activity</a>
+          <!-- <a href="/test-tools.html" class="tab-button">Test Tools</a> -->
+        </div>
+      </nav>
+    </header>
+
+    <div class="content-page">
+      <h2>Shopify Activity</h2>
+
+      <div class="shopify-controls">
+        <button id="refresh-shopify" class="action-button">Refresh Shopify Data</button>
+        <div class="last-sync">Last synchronized: <span id="last-sync-time">Never</span></div>
+      </div>
+
+      <div class="shopify-stats">
+        <div class="stat-row">
+          <span class="stat-label">Total Collections:</span>
+          <span class="stat-value" id="total-collections">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Total Products:</span>
+          <span class="stat-value" id="total-products">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Products with Tags:</span>
+          <span class="stat-value" id="tagged-products">0</span>
+        </div>
+      </div>
+
+      <h4>Recent Activity</h4>
+      <div class="activity-log" id="shopify-activity-log">
+        <div class="loading">Loading Shopify activity...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // Format date and time
+  function formatDateTime(dateString) {
+    if (!dateString) return 'Never';
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+
+    return new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    }).format(date);
+  }
+
+  // Load Stats
+  async function loadStats() {
+    try {
+      const response = await fetch('/api/stats');
+      if (!response.ok) throw new Error('Failed to fetch stats');
+
+      const stats = await response.json();
+
+      // Shopify elements
+      const totalCollectionsEl = document.getElementById('total-collections');
+      const totalProductsEl = document.getElementById('total-products');
+      const taggedProductsEl = document.getElementById('tagged-products');
+      const lastSyncTimeEl = document.getElementById('last-sync-time');
+
+      // Update Shopify stats if available
+      if (stats.shopify) {
+        if (totalCollectionsEl) totalCollectionsEl.textContent = stats.shopify.collections || 0;
+        if (totalProductsEl) totalProductsEl.textContent = stats.shopify.products || 0;
+
+        // Update tagged products count with a breakdown if available
+        if (taggedProductsEl) {
+          const taggedCount = stats.shopify.taggedProducts || 0;
+          let taggedText = taggedCount;
+
+          // If we have specific tag counts, show them in parentheses
+          if (stats.shopify.tagCounts) {
+            const tagDetails = [];
+            if (stats.shopify.tagCounts.online > 0) {
+              tagDetails.push(`online: ${stats.shopify.tagCounts.online}`);
+            }
+            if (stats.shopify.tagCounts.commission > 0) {
+              tagDetails.push(`commission: ${stats.shopify.tagCounts.commission}`);
+            }
+
+            if (tagDetails.length > 0) {
+              taggedText = `${taggedCount} (${tagDetails.join(', ')})`;
+            }
+          }
+
+          taggedProductsEl.textContent = taggedText;
+        }
+
+        if (lastSyncTimeEl) lastSyncTimeEl.textContent = formatDateTime(stats.shopify.lastSync);
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  }
+
+  // Load Shopify Activity
+  async function loadShopifyActivity() {
+    try {
+      const shopifyActivityLogEl = document.getElementById('shopify-activity-log');
+      if (!shopifyActivityLogEl) {
+        console.warn('Shopify activity log element not found');
+        return;
+      }
+
+      shopifyActivityLogEl.innerHTML = '<div class="loading">Loading Shopify activity...</div>';
+
+      console.log('Fetching Shopify activity from /api/shopify/activity');
+      const response = await fetch(`/api/shopify/activity`);
+
+      console.log(`Response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API error (${response.status}): ${errorText}`);
+        throw new Error(`Failed to fetch Shopify activity: ${response.status}`);
+      }
+
+      const activities = await response.json();
+      console.log(`Received ${activities.length} activities`);
+
+      if (!activities || activities.length === 0) {
+        shopifyActivityLogEl.innerHTML = '<div class="no-data">No Shopify activity found</div>';
+        return;
+      }
+
+      // Handle error activities
+      if (activities.length === 1 && activities[0].type === 'error') {
+        shopifyActivityLogEl.innerHTML = `
+          <div class="error">
+            <strong>${activities[0].title}</strong><br>
+            ${activities[0].details}
+          </div>
+        `;
+        return;
+      }
+
+      // Sort activities by timestamp (newest first)
+      activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      // Render activities
+      shopifyActivityLogEl.innerHTML = '';
+      activities.forEach(activity => {
+        const activityEl = document.createElement('div');
+        activityEl.className = `activity-item ${activity.type || 'unknown'}`;
+
+        activityEl.innerHTML = `
+          <div class="activity-timestamp">${formatDateTime(activity.timestamp)}</div>
+          <div class="activity-title">${activity.title || 'Activity'}</div>
+          <div class="activity-details">${activity.details || 'No details available'}</div>
+        `;
+
+        shopifyActivityLogEl.appendChild(activityEl);
+      });
+    } catch (error) {
+      console.error('Error loading Shopify activity:', error);
+      const shopifyActivityLogEl = document.getElementById('shopify-activity-log');
+      if (shopifyActivityLogEl) {
+        shopifyActivityLogEl.innerHTML = `
+          <div class="error">
+            Failed to load Shopify activity<br>
+            <small>${error.message}</small>
+          </div>
+        `;
+      }
+    }
+  }
+
+  // Refresh Shopify Data
+  async function refreshShopifyData() {
+    const refreshShopifyButton = document.getElementById('refresh-shopify');
+    if (!refreshShopifyButton) return;
+
+    // Disable button and show loading state
+    refreshShopifyButton.disabled = true;
+    const originalText = refreshShopifyButton.textContent;
+    refreshShopifyButton.textContent = 'Refreshing...';
+
+    try {
+      // Call the API endpoint to refresh Shopify data
+      const response = await fetch(`/api/shopify/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to refresh data: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Reload the data from our endpoints
+      await Promise.all([loadStats(), loadShopifyActivity()]);
+
+      // Show success message
+      refreshShopifyButton.textContent = 'Data Refreshed!';
+
+      // Reset button after a delay
+      setTimeout(() => {
+        refreshShopifyButton.textContent = originalText;
+        refreshShopifyButton.disabled = false;
+      }, 2000);
+    } catch (error) {
+      console.error('Error refreshing Shopify data:', error);
+      refreshShopifyButton.textContent = 'Error';
+
+      // Reset button after a delay
+      setTimeout(() => {
+        refreshShopifyButton.textContent = originalText;
+        refreshShopifyButton.disabled = false;
+      }, 2000);
+    }
+  }
+
+  // Set up event listeners
+  function setupEventListeners() {
+    const refreshShopifyButton = document.getElementById('refresh-shopify');
+    if (refreshShopifyButton) {
+      refreshShopifyButton.addEventListener('click', refreshShopifyData);
+    }
+  }
+
+  // Initialize
+  async function initialize() {
+    setupEventListeners();
+
+    await Promise.all([
+      loadStats(),
+      loadShopifyActivity()
+    ]);
+  }
+
+  // Start the app
+  window.addEventListener('DOMContentLoaded', initialize);
+  </script>
+</body>
+</html>

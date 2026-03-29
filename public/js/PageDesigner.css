@@ -1,0 +1,434 @@
+/**
+ * PageDesigner Component Styles
+ *
+ * These styles define the appearance of the page designer component,
+ * including the grid layout that matches the pre-perforated paper dimensions.
+ */
+
+.page-designer {
+  /* Letter size at 96 DPI (8.5" × 11") */
+  width: 816px;  /* 8.5" * 96dpi */
+  height: 1056px; /* 11" * 96dpi */
+  background: white;
+  margin: 0;
+  position: relative;
+  padding: 96px; /* Exactly 1" margins (96dpi) */
+  box-sizing: border-box;
+}
+
+.perforated-page-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.page-designer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background-color: var(--primary-color);
+  padding: 1rem;
+}
+
+.page-designer-header h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+}
+
+.page-designer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Base style for action buttons within page designer */
+.page-designer-action-btn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+  border: 1px solid #ccc; /* Default border */
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+/* Specific style for Download button */
+.page-designer-download-btn {
+  background-color: #e9f0fd; /* Light blue background */
+  border-color: #a8c7fa;
+}
+
+/* Specific style for Print button */
+.page-designer-print-btn {
+  background-color: #e6f4ea; /* Light green background */
+  border-color: #a3d9b1;
+}
+
+/* Hover state for all action buttons */
+.page-designer-action-btn:hover {
+  opacity: 0.9;
+}
+
+/* Disabled state for all action buttons */
+.page-designer-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Page Designer - Exact paper dimensions and layout */
+.perforated-page-grid {
+  /* Usable area after 1" margins: 6.5" × 9" at 96 DPI */
+  width: 624px;  /* 6.5" * 96dpi */
+  height: 864px; /* 9" * 96dpi */
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 0;
+  background: white;
+  position: relative;
+}
+
+/* Individual card slots */
+.card-slot {
+  width: 312px;  /* 3.25" * 96dpi */
+  height: 172.8px; /* 1.8" * 96dpi */
+  border: 1px dashed #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: white;
+  transition: all 0.2s ease;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.card-slot:hover {
+  border-color: #666;
+  background: #f9f9f9;
+}
+
+.card-slot.empty {
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+.card-slot.occupied {
+  border-style: solid;
+  border-color: #ddd;
+}
+
+/* Preview scale wrapper to fit in viewport */
+.preview-scale-wrapper {
+  max-width: 100%;
+  max-height: 80vh;
+  overflow: auto;
+  padding: 20px;
+  background: #f0f0f0;
+  border-radius: 8px;
+}
+
+/* Print media query for exact dimensions */
+@media print {
+  .page-designer {
+    width: 8.5in;
+    height: 11in;
+    padding: 1in;
+    margin: 0;
+  }
+
+  .perforated-page-grid {
+    width: 6.5in;
+    height: 9in;
+    margin: 0;
+    padding: 0;
+  }
+
+  .card-slot {
+    width: 3.25in;
+    height: 1.8in;
+    border: none;
+  }
+}
+
+/* Grid cell styling */
+.grid-cell {
+  width: 100%;
+  height: 100%;
+  border: 1px dashed #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f5f5;
+  position: relative;
+  transition: all 0.2s ease;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.grid-cell.filled {
+  background: white;
+  border: 1px solid #bbb;
+}
+
+.grid-cell-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.grid-cell-position {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  z-index: 2;
+}
+
+.grid-cell-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  background: #ff4444;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.product-card-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+/* Preview modal styling */
+.page-preview-modal .modal-content {
+  max-width: 900px;
+  width: 95%;
+  min-height: 80vh;
+}
+
+.page-preview-modal .modal-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f5f5f5;
+  padding: 1.5rem;
+}
+
+.page-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(5, auto);
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #f0f0f0;
+}
+
+.preview-empty-slot {
+  width: 100%;
+  aspect-ratio: 408 / 211;
+  border: 1px dashed #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f5f5f5;
+  color: #999;
+  font-style: italic;
+}
+
+.preview-product-cell {
+  width: 100%;
+  position: relative;
+}
+
+.preview-position-id {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 5px;
+  border-radius: 3px;
+  z-index: 10;
+}
+
+/* Modal styling */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 600px;
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #888;
+}
+
+.modal-body {
+  padding: 1rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 1rem;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.print-button {
+  background-color: #4a6eb5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.close-button-bottom {
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  color: #333;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Page preview in modal */
+.page-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(5, auto);
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #f0f0f0;
+  width: 100%;
+  aspect-ratio: 8.5 / 11; /* Letter size paper aspect ratio (portrait) */
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .page-designer {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .perforated-page-grid {
+    padding: 0.75rem;
+    gap: 0.4rem;
+    max-width: 100%;
+  }
+
+  .page-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0.75rem;
+    gap: 0.4rem;
+  }
+
+  .grid-cell-artist {
+    font-size: 0.75rem;
+  }
+
+  .grid-cell-title {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .perforated-page-grid {
+    aspect-ratio: auto;
+    max-height: none;
+  }
+
+  .page-preview-grid {
+    grid-template-columns: 1fr;
+    aspect-ratio: auto;
+  }
+
+  .preview-empty-slot {
+    height: 100px;
+  }
+}
+
+@media (max-width: 576px) {
+  .page-designer-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .page-designer-actions button {
+    width: 100%;
+  }
+}

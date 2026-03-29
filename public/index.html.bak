@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Generator for Art Show</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/js/ProductCard.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    window.jspdf = window.jspdf || {};
+    window.jsPDF = window.jspdf.jsPDF;
+  </script>
+  <script src="/js/QRCodeComponent.js"></script>
+  <script type="module" src="/js/PrintablePagePreview.js"></script>
+  <script type="module" src="/js/pdfService.js"></script>
+  <script type="module" src="/js/buttonHandlers.js"></script>
+  <script type="module" src="script.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Harding Academy QR Code Buddy</h1>
+      <p class="subtitle">Track and manage QR code generation for artists and artwork</p>
+      <nav class="main-nav">
+        <div class="tab-buttons">
+          <a href="/" class="tab-button active">Dashboard</a>
+          <a href="/shopify-activity.html" class="tab-button">Shopify Activity</a>
+        </div>
+      </nav>
+    </header>
+
+    <div class="dashboard">
+      <div class="stats-overview">
+        <h2>Dashboard Overview</h2>
+        <div class="stats-tiles">
+          <div class="stat-tile product-cards">
+            <div class="stat-tile-header">Product Cards</div>
+            <div class="stat-tile-grid">
+              <div class="stat-metric">
+                <span class="stat-number" id="product-cards-total">0</span>
+                <span class="stat-label">Total</span>
+              </div>
+              <div class="stat-metric">
+                <span class="stat-number" id="product-cards-unassigned">0</span>
+                <span class="stat-label">Unassigned</span>
+              </div>
+              <div class="stat-metric">
+                <span class="stat-number" id="product-cards-assigned">0</span>
+                <span class="stat-label">Assigned</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-tile pages">
+            <div class="stat-tile-header">Pages</div>
+            <div class="stat-tile-grid">
+              <div class="stat-metric">
+                <span class="stat-number" id="pages-total">0</span>
+                <span class="stat-label">Total</span>
+              </div>
+              <div class="stat-metric">
+                <span class="stat-number" id="pages-ready">0</span>
+                <span class="stat-label">Ready</span>
+              </div>
+              <div class="stat-metric">
+                <span class="stat-number" id="pages-downloaded">0</span>
+                <span class="stat-label">Downloaded</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pages-visualizer-section">
+        <h2>Pages Overview</h2>
+        <div class="pages-visualizer-container">
+          <div class="pages-visualizer-header">
+            <div class="pages-visualizer-title">Available Pages</div>
+            <div class="pages-visualizer-actions">
+              <button class="action-button minimal" id="download-selected-btn" disabled>Download Selected</button>
+            </div>
+          </div>
+          <div id="pages-visualizer-grid" class="pages-visualizer-grid">
+            <!-- Page blocks will be dynamically inserted here -->
+          </div>
+        </div>
+      </div>
+
+      <div class="staging-section">
+        <h2>Staging Area</h2>
+        <div class="staging-container">
+          <div class="product-selection-column">
+            <div class="stat-tile product-cards">
+              <div class="stat-tile-header">Shopify Vendors</div>
+              <div class="stat-tile-grid simple">
+                <div class="stat-metric">
+                  <div class="vendor-search-container">
+                    <input type="text" id="vendor-search" placeholder="Search for vendors..." class="vendor-search-input">
+                    <div id="vendor-search-results" class="vendor-search-results"></div>
+                  </div>
+                </div>
+                <div class="stat-metric">
+                  <button class="action-button" id="add-all-header-btn">Add All</button>
+                </div>
+              </div>
+              <div id="product-list" class="product-list">
+                <div class="no-data">Select a vendor to view products</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="page-designer-column">
+            <div class="stat-tile pages">
+              <div class="stat-tile-header">Page Designer</div>
+              <div class="stat-tile-grid simple">
+                <div class="stat-metric">
+                  <span class="stat-number" id="current-page-id">New Page</span>
+                </div>
+                <div class="stat-metric">
+                  <button class="action-button" id="download-page-btn">Download PDF</button>
+                </div>
+              </div>
+              <!-- PrintablePagePreview container -->
+              <div id="page-preview-container" class="page-preview-container"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content active" id="dashboard-tab">
+        <!-- Dashboard content only -->
+      </div>
+
+      <div class="tab-content" id="ready-tab">
+        <h3>Batches Ready to Print</h3>
+        <div class="batches-list" id="ready-list">
+          <div class="loading">Loading batches...</div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="printed-tab">
+        <h3>Printed Batches</h3>
+        <div class="batches-list" id="printed-list">
+          <div class="loading">Loading batches...</div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="status-tab">
+        <h3>Status Overview</h3>
+        <div class="status-overview">
+          <div class="status-card">
+            <h4>Unprocessed Items</h4>
+            <div class="status-value" id="status-unprocessed">0</div>
+            <p>Items waiting to be processed into QR codes</p>
+          </div>
+
+          <div class="status-card">
+            <h4>Ready to Print</h4>
+            <div class="status-value" id="status-ready">0</div>
+            <p>QR codes ready to be printed</p>
+          </div>
+
+          <div class="status-card">
+            <h4>Printed</h4>
+            <div class="status-value" id="status-printed">0</div>
+            <p>QR codes that have been printed</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="shopify-tab">
+        <h3>Shopify Activity</h3>
+
+        <div class="shopify-controls">
+          <button id="refresh-shopify" class="action-button">Refresh Shopify Data</button>
+          <div class="last-sync">Last synchronized: <span id="last-sync-time">Never</span></div>
+        </div>
+
+        <div class="shopify-stats">
+          <div class="stat-row">
+            <span class="stat-label">Total Collections:</span>
+            <span class="stat-value" id="total-collections">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Total Products:</span>
+            <span class="stat-value" id="total-products">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Products with Tags:</span>
+            <span class="stat-value" id="tagged-products">0</span>
+          </div>
+        </div>
+
+        <h4>Recent Activity</h4>
+        <div class="activity-log" id="shopify-activity-log">
+          <div class="loading">Loading Shopify activity...</div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="test-tab">
+        <h3>Test Tools</h3>
+        <div class="button-group">
+          <button id="add-test-data" class="action-button secondary">Add Test Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Direct inline script to ensure dashboard stats are loaded -->
+  <script>
+    console.log('INLINE SCRIPT: Adding direct stats loader');
+
+    // Function to directly load stats, independent of other scripts
+    async function loadDashboardStatsDirectly() {
+      console.log('INLINE SCRIPT: Direct stats loader running');
+      try {
+        console.log('INLINE SCRIPT: Fetching stats from API');
+        const response = await fetch('/api/stats');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch stats: ${response.status}`);
+        }
+
+        const stats = await response.json();
+        console.log('INLINE SCRIPT: Stats received:', stats);
+
+        // Update product cards stats
+        document.getElementById('product-cards-total').textContent = stats.productCards.total;
+        document.getElementById('product-cards-unassigned').textContent = stats.productCards.unassigned;
+        document.getElementById('product-cards-assigned').textContent = stats.productCards.assigned;
+
+        // Update pages stats
+        document.getElementById('pages-total').textContent = stats.pages.total;
+        document.getElementById('pages-ready').textContent = stats.pages.ready;
+        document.getElementById('pages-downloaded').textContent = stats.pages.downloaded;
+
+        console.log('INLINE SCRIPT: Stats updated successfully');
+      } catch (error) {
+        console.error('INLINE SCRIPT ERROR:', error);
+      }
+    }
+
+    // Run immediately
+    window.addEventListener('load', () => {
+      console.log('INLINE SCRIPT: Window loaded, running stats loader');
+      loadDashboardStatsDirectly();
+
+      // Run again after 2 seconds as a backup
+      setTimeout(loadDashboardStatsDirectly, 2000);
+    });
+  </script>
+</body>
+</html>

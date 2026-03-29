@@ -1,0 +1,207 @@
+/* SyncLogFeed Component Styles */
+
+.sync-log-feed {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: var(--font-family);
+}
+
+.time-group {
+  margin-bottom: 30px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.time-header {
+  background-color: var(--header-bg);
+  color: var(--header-text);
+  margin: 0;
+  padding: 10px 20px;
+  font-size: 1.2em;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.logs-container {
+  padding: 15px;
+}
+
+.sync-log-entry {
+  background: var(--card-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-bottom: 15px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.sync-log-entry:last-child {
+  margin-bottom: 0;
+}
+
+.vendor-name {
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-bottom: 8px;
+  font-size: 1.1em;
+}
+
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.log-header-left, .log-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.created-by {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+.duration {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  font-family: var(--mono-font);
+  padding: 2px 6px;
+  background: var(--light-bg);
+  border-radius: 3px;
+}
+
+.status-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.status-partial {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.status-failure {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.timestamp {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.summary {
+  margin: 10px 0;
+  font-size: 1em;
+  color: var(--text-color);
+}
+
+.sync-log-details {
+  margin-top: 15px;
+  font-size: 0.9em;
+}
+
+.sync-log-details h4 {
+  color: var(--text-muted);
+  font-size: 0.95em;
+  margin: 15px 0 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border-color-light);
+}
+
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.count-item {
+  background: var(--light-bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.messages-section, .operations-section, .errors-section {
+  margin-top: 15px;
+}
+
+.messages, .operations, .errors {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.messages li, .operations li, .errors li {
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background: var(--light-bg);
+}
+
+.operation-type {
+  font-weight: bold;
+  margin-right: 8px;
+  text-transform: capitalize;
+}
+
+.operation-message {
+  color: var(--text-color);
+}
+
+.error-item {
+  background: var(--error-bg) !important;
+  border-left: 4px solid var(--error-color);
+}
+
+.error-type {
+  font-weight: bold;
+  color: var(--error-color);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.error-message {
+  color: var(--text-color);
+}
+
+.error-details {
+  margin: 8px 0 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+  font-family: var(--mono-font);
+  font-size: 0.9em;
+  overflow-x: auto;
+}
+
+/* Operation type specific colors */
+.operation-product_created .operation-type {
+  color: var(--success-color);
+}
+
+.operation-product_updated .operation-type {
+  color: var(--info-color);
+}
+
+.operation-page_created .operation-type {
+  color: var(--primary-color);
+}
+
+.operation-queue_created .operation-type {
+  color: var(--secondary-color);
+}

@@ -1,0 +1,2079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Queue Manager</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/js/ProductCard.css">
+  <link rel="stylesheet" href="/js/grid-styles.css">
+  <link rel="stylesheet" href="/js/SimpleProductCard.css">
+  <style>
+    /* Override and extend the main styles.css */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 4px;
+      background-color: var(--accent-color);
+      border-radius: 2px;
+    }
+
+    h1 {
+      color: var(--primary-color);
+      margin: 0 0 5px 0;
+      font-size: 2.2rem;
+    }
+
+    h2 {
+      color: var(--secondary-color);
+      margin: 15px 0;
+      font-size: 1.4em;
+    }
+
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      padding: 10px 15px;
+      background-color: var(--success-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    button:hover {
+      background-color: #27ae60;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    .section {
+      margin-bottom: 30px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      background-color: var(--card-color);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      text-align: left;
+    }
+
+    .queue-container {
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .queue-card {
+      background: #2ecc71; /* Match the pages-overview header */
+      color: white;
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      flex-direction: column;
+      width: 80px;
+      height: 80px;
+    }
+
+    .queue-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .queue-card.selected {
+      background: #27ae60;
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .queue-card.processed {
+      border: 2px solid var(--success-color);
+      background-color: white;
+      color: var(--success-color);
+    }
+
+    .queue-id {
+      font-size: 0.7em;
+      margin-top: 3px;
+      opacity: 0;
+      height: 0;
+      overflow: hidden;
+    }
+
+    .pages-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .page-card {
+      background: #3498db; /* Match the product-cards header */
+      color: white;
+      padding: 6px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      position: relative;
+    }
+
+    .page-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .page-card.selected {
+      background: #2980b9;
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Style for downloaded/done pages - Blue outline */
+    .page-card.downloaded {
+      border: 2px solid #3498db !important; /* Use original blue for border */
+      background-color: white !important; /* White background */
+      color: #3498db !important; /* Blue text */
+    }
+
+    .page-card .checkbox {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+    }
+
+    .page-id {
+      font-size: 0.65em;
+      margin-top: 3px;
+      opacity: 0.8;
+      max-width: 68px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .page-name {
+      font-weight: bold;
+      font-size: 0.8em;
+    }
+
+    .page-count {
+      font-size: 0.65em;
+    }
+
+    .preview-container {
+      margin-top: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      min-height: 100px;
+      overflow: hidden;
+      background-color: #f9f9f9;
+    }
+
+    .download-controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 15px;
+    }
+
+    /* Vendor search styles */
+    .vendor-search-container {
+      margin-bottom: 15px;
+    }
+
+    .search-field {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    #vendor-search {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      max-height: 300px;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid var(--border-color);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      z-index: 1000;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .vendor-result {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+    }
+
+    .vendor-result:hover {
+      background-color: #f5f5f5;
+    }
+
+    .loading, .error, .no-results {
+      padding: 10px;
+      text-align: center;
+      color: #666;
+    }
+
+    .error {
+      color: var(--error-color);
+    }
+
+    .no-results {
+      padding: 10px;
+      text-align: center;
+      color: #666;
+      background: white !important;
+      font-style: italic;
+    }
+
+    .product-list {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+      position: relative;
+      z-index: 1; /* Lower than the dropdown */
+    }
+
+    /* Print-specific styles */
+    @media print {
+      @page {
+        size: letter;
+        margin: 0;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+      }
+
+      body {
+        display: flex;
+        justify-content: flex-start;
+        align-items: flex-start;
+      }
+
+      .controls, header, footer, nav, #debug-panel, .section, .download-controls {
+        display: none !important;
+      }
+
+      .container, .preview-container {
+        position: static !important;
+        overflow: visible !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+    }
+
+    /* Add modal styles */
+    .sync-modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      z-index: 10000;
+      max-width: 80%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .sync-modal h3 {
+      margin-top: 0;
+      color: #2196f3;
+    }
+
+    .sync-modal-content {
+      margin: 15px 0;
+    }
+
+    .sync-modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 20px;
+      color: #666;
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 25px;
+      background: #f8f9fa;
+      color: #2c3e50;
+      border-left: 4px solid #2ecc71;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10000;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      min-width: 300px;
+      max-width: 600px;
+    }
+
+    .toast.error {
+      border-left-color: #e74c3c;
+    }
+
+    .toast .dismiss {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      cursor: pointer;
+      color: #666;
+      padding: 5px;
+      font-size: 18px;
+    }
+
+    .toast .dismiss:hover {
+      color: #333;
+    }
+
+    .toast.hide {
+      opacity: 0;
+    }
+
+    /* Sync logs section styles */
+    .sync-controls {
+      text-align: right;
+    }
+
+    #syncAllButton {
+      padding: 8px 16px;
+      background-color: var(--success-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    #syncAllButton:hover {
+      background-color: #27ae60;
+    }
+
+    #syncAllButton:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    #lastSyncStatus {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.8em;
+      margin-top: 6px;
+    }
+
+    /* Add new split layout styles */
+    .split-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+      text-align: left;
+    }
+
+    .split-section {
+      max-height: 600px;
+      overflow-y: auto;
+      text-align: left;
+    }
+
+    .split-section .section {
+      flex: 1;
+      margin-bottom: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .split-section .section > h2 {
+      margin-top: 0;
+    }
+
+    /* Adjust vendor search container for new layout */
+    .vendor-search-container {
+      margin-bottom: 15px;
+      flex-shrink: 0;
+    }
+
+    /* Vendor side scrollable content */
+    .vendor-content {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+
+    /* Make product list scrollable */
+    .product-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* Adjust sync log feed for new layout */
+    sync-log-feed {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+
+    .sync-controls {
+      flex-shrink: 0;
+    }
+  </style>
+  <link rel="stylesheet" href="/js/services/SyncLogFeed.css">
+
+  <!-- Required Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    // Initialize jsPDF
+    window.jspdf = window.jspdf || {};
+    window.jsPDF = window.jspdf.jsPDF;
+
+    function showToast(message, isError = false) {
+      // Remove any existing toasts
+      const existingToast = document.querySelector('.toast');
+      if (existingToast) {
+        existingToast.remove();
+      }
+
+      // Create new toast
+      const toast = document.createElement('div');
+      toast.className = `toast${isError ? ' error' : ''}`;
+      toast.style.whiteSpace = 'pre-line';  // Respect newlines
+
+      // Add dismiss button
+      const dismiss = document.createElement('span');
+      dismiss.className = 'dismiss';
+      dismiss.innerHTML = '&times;';
+      dismiss.onclick = () => {
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 500);
+      };
+      toast.appendChild(dismiss);
+
+      // Add message
+      const messageEl = document.createElement('div');
+      messageEl.style.paddingRight = '20px';  // Make room for dismiss button
+      messageEl.textContent = message;
+      toast.appendChild(messageEl);
+
+      document.body.appendChild(toast);
+
+      // Remove after 13 seconds with fade
+      const timeout = setTimeout(() => {
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 500);
+      }, 13000);
+
+      // Clear timeout if manually dismissed
+      dismiss.onclick = () => {
+        clearTimeout(timeout);
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 500);
+      };
+    }
+
+    // Verify libraries are loaded
+    window.addEventListener('load', function() {
+      console.log('Checking required libraries:');
+      console.log('QRCode library loaded:', typeof QRCode !== 'undefined');
+      console.log('jsPDF library loaded:', typeof window.jsPDF !== 'undefined');
+      console.log('html2canvas library loaded:', typeof html2canvas !== 'undefined');
+
+      // Use local QR code library if CDN fails
+      if (typeof QRCode === 'undefined') {
+        console.warn('QRCode library not loaded from CDN, attempting to load local version');
+        const script = document.createElement('script');
+        script.src = '/js/lib/qrcode.js';
+        script.async = true;
+        script.onload = function() {
+          console.log('Local QRCode library loaded successfully');
+        };
+        script.onerror = function() {
+          console.error('Failed to load local QRCode library');
+        };
+        document.head.appendChild(script);
+      }
+    });
+  </script>
+
+  <!-- Import QRCodeComponent before other components that depend on it -->
+  <script type="module">
+    import { QRCodeComponent } from '/js/QRCodeComponent.js';
+    // Initialize QRCodeComponent globally
+    window.qrCodeComponent = new QRCodeComponent();
+  </script>
+
+  <script type="module">
+    import { PrintablePagePreview } from '/js/PrintablePagePreview.js';
+    import { SimpleProductCard } from '/js/SimpleProductCard.js';
+
+    // Debug logger
+    function debugLog(message) {
+      console.log(message);
+      const debugOutput = document.getElementById('debug-output');
+      if (debugOutput) {
+        const logEntry = document.createElement('div');
+        logEntry.textContent = `${new Date().toISOString().substr(11, 8)} - ${message}`;
+        debugOutput.appendChild(logEntry);
+        debugOutput.scrollTop = debugOutput.scrollHeight;
+      }
+    }
+
+    // Debug DOM height info
+    function logElementHeights() {
+      const printablePage = document.querySelector('.printable-page');
+      if (!printablePage) return "No printable page found";
+
+      debugLog(`Document height: ${document.documentElement.scrollHeight}px`);
+      debugLog(`Body height: ${document.body.scrollHeight}px`);
+      debugLog(`Container height: ${document.querySelector('.container').scrollHeight}px`);
+      debugLog(`Preview container height: ${document.getElementById('preview-container').scrollHeight}px`);
+      debugLog(`Printable page height: ${printablePage.scrollHeight}px`);
+      debugLog(`Printable page offset height: ${printablePage.offsetHeight}px`);
+      debugLog(`Printable page client height: ${printablePage.clientHeight}px`);
+    }
+
+    // State variables
+    let queues = [];
+    let selectedQueueId = null;
+    let pages = [];
+    let selectedPageId = null;
+    let selectedPages = new Set();
+    let currentPageData = null;
+    let selectedVendorName = null;
+
+    // Get elements - use optional chaining to avoid null errors
+    const printPreviewBtn = document.getElementById('print-preview-btn');
+    const downloadPdfBtn = document.getElementById('download-pdf-btn');
+    const downloadAllPdfBtn = document.getElementById('download-all-pdf-btn');
+    const downloadSelectedPdfBtn = document.getElementById('download-selected-pdf-btn');
+    const queueContainer = document.getElementById('queue-container');
+    const pagesContainer = document.getElementById('pages-container');
+    const previewContainer = document.getElementById('preview-container');
+
+    // Debug elements that might be missing
+    debugLog(`UI Elements check:
+      printPreviewBtn: ${!!printPreviewBtn}
+      downloadPdfBtn: ${!!downloadPdfBtn}
+      downloadAllPdfBtn: ${!!downloadAllPdfBtn}
+      downloadSelectedPdfBtn: ${!!downloadSelectedPdfBtn}
+      queueContainer: ${!!queueContainer}
+      pagesContainer: ${!!pagesContainer}
+      previewContainer: ${!!previewContainer}
+    `);
+
+    // Initialize the PrintablePagePreview
+    debugLog('Initializing PrintablePagePreview component...');
+    let pagePreview;
+    try {
+      pagePreview = new PrintablePagePreview(previewContainer);
+      debugLog('PrintablePagePreview component initialized successfully--- index.htlmz');
+    } catch (error) {
+      debugLog(`Error initializing PrintablePagePreview: ${error.message}`);
+      console.error('Failed to initialize PrintablePagePreview:', error);
+      previewContainer.innerHTML = `<div style="padding: 20px; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 8px;">
+        <h3>Component Initialization Error</h3>
+        <p>${error.message}</p>
+      </div>`;
+    }
+
+    // API functions to fetch real data from the server
+    async function fetchQueues() {
+      debugLog('Fetching queues from API...');
+      try {
+        const response = await fetch('/api/queues');
+        if (!response.ok) {
+          throw new Error(`Error fetching queues: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        debugLog(`Fetched ${data.length} queues from API`);
+        debugLog(`QUEUE DATA: ${JSON.stringify(data)}`);
+        return data;
+      } catch (error) {
+        debugLog(`Error: ${error.message}`);
+        return [];
+      }
+    }
+
+    async function fetchPages(queueId) {
+      debugLog(`Fetching pages from API${queueId ? ` for queue ${queueId}` : ''}...`);
+      try {
+        let url = '/api/pages';
+        if (queueId) {
+          url += `?queue_id=${queueId}`;
+        }
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Error fetching pages: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        debugLog(`Fetched ${data.length} pages from API${queueId ? ` for queue ${queueId}` : ''}`);
+        debugLog(`PAGE DATA: ${JSON.stringify(data)}`);
+        return data;
+      } catch (error) {
+        debugLog(`Error: ${error.message}`);
+        return [];
+      }
+    }
+
+    async function fetchProductCards(pageId) {
+      debugLog(`Fetching product cards for page ${pageId}...`);
+
+      try {
+        // Fetch the page data to get the card_ids
+        const pageResponse = await fetch(`/api/pages/${pageId}`);
+        if (!pageResponse.ok) {
+          throw new Error(`Error fetching page data: ${pageResponse.status}`);
+        }
+
+        const pageData = await pageResponse.json();
+        debugLog(`Page data received for page ${pageId}`);
+        debugLog(`card_ids: ${pageData.card_ids}`);
+
+        // Parse the card_ids array
+        let cardIds = [];
+        try {
+          cardIds = JSON.parse(pageData.card_ids || '[]');
+          debugLog(`Parsed card_ids: ${JSON.stringify(cardIds)}`);
+        } catch (error) {
+          throw new Error(`Failed to parse card_ids: ${error.message}`);
+        }
+
+        if (cardIds.length === 0) {
+          debugLog(`Page ${pageId} has no cards (empty card_ids array)`);
+          return [];
+        }
+
+        // Fetch each card individually
+        debugLog(`Fetching ${cardIds.length} cards by ID`);
+        const cards = [];
+
+        for (const cardId of cardIds) {
+          try {
+            const cardResponse = await fetch(`/api/product-cards/${cardId}`);
+            if (!cardResponse.ok) {
+              debugLog(`Error fetching card ${cardId}: ${cardResponse.status}`);
+              continue;
+            }
+
+            const card = await cardResponse.json();
+
+            // --- ADD LOGGING FOR RAW CARD DATA ---
+            debugLog(`RAW Card ${cardId} JSON from API: ${JSON.stringify(card)}`);
+            // --- END LOGGING ---
+
+            // Debug logging for shopify_id
+            debugLog(`Card ${cardId} data:`);
+            debugLog(`  - shopify_id: ${card.shopify_id || 'MISSING'}`);
+            debugLog(`  - product_name: ${card.product_name}`);
+
+            // Format the product name for the URL path - THE ONLY CORRECT WAY
+            let productUrlPath = card.product_name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+            debugLog(`Created URL path from product_name: ${productUrlPath}`);
+
+            cards.push({
+              id: card.id,
+              shopify_id: card.shopify_id,
+              title: card.product_name,
+              artist: card.artist_name,
+              price: parseFloat(card.price) || 0,
+              onlineStoreUrl: card.onlineStoreUrl,
+              handle: card.handle,
+              image_url: card.image_url
+            });
+          } catch (error) {
+            debugLog(`Error processing card ${cardId}: ${error.message}`);
+          }
+        }
+
+        debugLog(`Successfully fetched ${cards.length} cards for page ${pageId}`);
+        return cards;
+      } catch (error) {
+        debugLog(`Error in fetchProductCards: ${error.message}`);
+        console.error(error);
+        throw error;
+      }
+    }
+
+    // UI Rendering functions
+    function renderQueues() {
+      queueContainer.innerHTML = '';
+
+      if (queues.length > 0) {
+        // Show the queues section
+        document.getElementById('queues-section').style.display = 'block';
+
+        queues.forEach(queue => {
+          const queueCard = document.createElement('div');
+          queueCard.className = 'queue-card';
+          if (queue.id === selectedQueueId) {
+            queueCard.classList.add('selected');
+          }
+          // Add class if queue is processed
+          if (queue.status === 'processed') {
+            queueCard.classList.add('processed');
+          }
+
+          queueCard.innerHTML = `Q${queue.id}`;
+
+          queueCard.addEventListener('click', () => {
+            selectQueue(queue.id);
+          });
+
+          queueContainer.appendChild(queueCard);
+        });
+      } else {
+        document.getElementById('queues-section').style.display = 'none';
+      }
+    }
+
+    function renderPages() {
+      pagesContainer.innerHTML = '';
+
+      if (pages.length === 0) {
+        document.getElementById('pages-section').style.display = 'none';
+        return;
+      }
+
+      // Show the pages section
+      document.getElementById('pages-section').style.display = 'block';
+
+      console.log('[renderPages] Rendering pages. Data:', JSON.stringify(pages)); // Log all page data
+
+      pages.forEach(page => {
+        console.log(`[renderPages] Processing Page ID: ${page.id}, Status: ${page.status}`); // Log individual page status
+        const pageCard = document.createElement('div');
+        pageCard.className = 'page-card';
+        if (page.id === selectedPageId) {
+          pageCard.classList.add('selected');
+        }
+        // Add class if page is downloaded/done
+        if (page.status === 'done') {
+          console.log(`[renderPages] Applying .downloaded class to Page ID: ${page.id}`); // Log when class is added
+          pageCard.classList.add('downloaded');
+        }
+
+        // Add checkbox for multi-select
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'checkbox';
+        checkbox.checked = selectedPages.has(page.id);
+        checkbox.addEventListener('change', (e) => {
+          e.stopPropagation(); // Prevent triggering page card click
+          if (checkbox.checked) {
+            selectedPages.add(page.id);
+          } else {
+            selectedPages.delete(page.id);
+          }
+          updateDownloadButtons();
+        });
+
+        // Try to parse card_ids to show count
+        let cardCount = 0;
+        try {
+          const cardIds = JSON.parse(page.card_ids || '[]');
+          cardCount = cardIds.length;
+        } catch (e) {
+          debugLog(`Error parsing card_ids for page ${page.id}: ${e.message}`);
+        }
+
+        pageCard.innerHTML = `P${page.id}`;
+
+        pageCard.appendChild(checkbox);
+
+        pageCard.addEventListener('click', () => {
+          selectPage(page.id);
+        });
+
+        pagesContainer.appendChild(pageCard);
+      });
+
+      // If we have pages but no selected page, select the first one
+      if (pages.length > 0 && !selectedPageId) {
+        selectPage(pages[0].id);
+      }
+
+      updateDownloadButtons();
+    }
+
+    // Event handlers
+    function selectQueue(queueId) {
+      selectedQueueId = queueId;
+      selectedPageId = null;
+      selectedPages.clear();
+
+      // Highlight selected queue
+      document.querySelectorAll('.queue-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+
+      document.querySelectorAll('.queue-card').forEach((card, index) => {
+        if (queues[index] && queues[index].id === queueId) {
+          card.classList.add('selected');
+        }
+      });
+
+      // Load pages for this queue
+      loadPagesForQueue(queueId);
+
+      // Clear preview
+      previewContainer.innerHTML = '<p>Select a page to preview</p>';
+      if (printPreviewBtn) printPreviewBtn.disabled = true;
+      if (downloadPdfBtn) downloadPdfBtn.disabled = true;
+    }
+
+    function selectPage(pageId) {
+      if (!pageId) {
+        debugLog('Warning: Attempted to select page with null or undefined ID');
+        return;
+      }
+
+      selectedPageId = pageId;
+
+      // Highlight selected page
+      document.querySelectorAll('.page-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+
+      document.querySelectorAll('.page-card').forEach((card, index) => {
+        if (pages[index] && pages[index].id === pageId) {
+          card.classList.add('selected');
+        }
+      });
+
+      // Load page preview
+      const page = pages.find(p => p.id === pageId);
+      if (page) {
+        // Look for well-populated page with cards
+        try {
+          let cardIds = [];
+          try {
+            cardIds = JSON.parse(page.card_ids || '[]');
+          } catch (e) {
+            debugLog(`Error parsing card_ids for page ${page.id}: ${e.message}`);
+          }
+
+          // Skip empty pages to avoid wasting cycles on them
+          if (cardIds.length === 0 && pages.length > 1) {
+            debugLog(`Page ${page.id} has no cards. Looking for a better page to display...`);
+
+            // Try to find a page with cards
+            const pagesWithCards = pages.filter(p => {
+              try {
+                const ids = JSON.parse(p.card_ids || '[]');
+                return ids.length > 0;
+              } catch {
+                return false;
+              }
+            });
+
+            if (pagesWithCards.length > 0) {
+              debugLog(`Found ${pagesWithCards.length} pages with cards. Selecting the first one.`);
+
+              // Use the first page with cards
+              const betterPage = pages.find(p => p.id === pagesWithCards[0].id);
+              loadPagePreview(betterPage);
+              return;
+            }
+          }
+        } catch (e) {
+          debugLog(`Error checking for card_ids: ${e.message}`);
+        }
+
+        loadPagePreview(page);
+      }
+    }
+
+    async function loadPagesForQueue(queueId) {
+      debugLog(`Loading pages for queue: ${queueId}`);
+
+      try {
+        // Fetch pages for the selected queue from the API
+        const queuePages = await fetchPages(queueId);
+
+        if (queuePages.length === 0) {
+          debugLog(`No pages found for queue ${queueId}`);
+          pages = [];
+          renderPages();
+          return;
+        }
+
+        // Set pages to only those belonging to the selected queue
+        pages = queuePages;
+
+        // Determine the default page to select and load
+        let defaultPageId = null;
+
+        // Find pages with actual products
+        const pagesWithProducts = pages.filter(p => {
+          try {
+            const cardIds = JSON.parse(p.card_ids || '[]');
+            return cardIds.length > 0;
+          } catch (e) {
+            return false;
+          }
+        });
+        debugLog(`Found ${pagesWithProducts.length} pages with products out of ${pages.length} total pages`);
+
+        if (pagesWithProducts.length > 0) {
+          defaultPageId = pagesWithProducts[0].id;
+          debugLog(`Default page will be the first with products: ${defaultPageId}`);
+        } else if (pages.length > 0) {
+          defaultPageId = pages[0].id;
+          debugLog(`No pages with products found. Default page will be the first overall: ${defaultPageId}`);
+        }
+
+        // Clear any previous selections and select the default page
+        selectedPages.clear();
+        if (defaultPageId !== null) {
+          selectPage(defaultPageId); // Selects for preview, sets selectedPageId
+          selectedPages.add(defaultPageId); // Add to the set for download/checkbox state
+          debugLog(`Added default page ${defaultPageId} to selectedPages set.`);
+        } else {
+          selectedPageId = null; // No page to select
+          previewContainer.innerHTML = '<p>No pages found for this queue.</p>';
+        }
+
+        // Now render pages, which will use selectedPages to set checkbox state
+        renderPages();
+
+        // Update download buttons based on the new state
+        updateDownloadButtons(); // Moved here from renderPages
+
+      } catch (error) {
+        console.error('Error loading pages:', error);
+        debugLog(`Error loading pages: ${error.message}`);
+        alert('Error loading pages: ' + error.message);
+      }
+    }
+
+    async function loadPagePreview(page) {
+      debugLog(`Loading preview for page: ${page.id}`);
+      currentPageData = page;
+
+      // Update the preview title
+      const previewTitle = document.getElementById('preview-title');
+      if (previewTitle) {
+        previewTitle.textContent = `Q${selectedQueueId}P${page.id}`;
+      }
+
+      try {
+        // Show the preview section
+        document.getElementById('preview-section').style.display = 'block';
+
+        debugLog(`Fetching product cards for page ID: ${page.id}`);
+
+        // Check if card_ids can be parsed
+        let cardIds = [];
+        try {
+          cardIds = JSON.parse(page.card_ids || '[]');
+          debugLog(`Successfully parsed card_ids: ${cardIds.length} cards found`);
+        } catch (e) {
+          debugLog(`Error parsing card_ids for page ${page.id}: ${e.message}`);
+          debugLog(`Raw card_ids value: ${page.card_ids}`);
+        }
+
+        // Fetch product cards for this page
+        const products = await fetchProductCards(page.id);
+        debugLog(`Fetched ${products.length} product cards for page ${page.id}`);
+
+        if (products.length === 0) {
+          debugLog(`No products found for page ${page.id}, trying next page if available`);
+
+          const currentIndex = pages.findIndex(p => p.id === page.id);
+
+          if (currentIndex >= 0 && currentIndex < pages.length - 1) {
+            const nextPage = pages[currentIndex + 1];
+            debugLog(`Trying next page: ${nextPage.id}`);
+
+            selectedPageId = nextPage.id;
+            document.querySelectorAll('.page-card').forEach(card => {
+              card.classList.remove('selected');
+            });
+            document.querySelectorAll('.page-card').forEach((card, index) => {
+              if (pages[index] && pages[index].id === nextPage.id) {
+                card.classList.add('selected');
+              }
+            });
+
+            loadPagePreview(nextPage);
+            return;
+          } else {
+            debugLog('No more pages available to try');
+            previewContainer.innerHTML = '<div style="padding: 20px; text-align: center; background-color: #f8f8f8; border-radius: 8px; border: 1px solid #ddd;"><h3>No Products Found</h3><p>This page has no products assigned to it.</p></div>';
+            if (downloadAllPdfBtn) downloadAllPdfBtn.disabled = true;
+            return;
+          }
+        }
+
+        // Create grid container for preview
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'printable-page';
+        gridContainer.dataset.pageId = page.id;
+        gridContainer.style.width = '8.5in';
+        gridContainer.style.height = '11in';
+        gridContainer.style.padding = '0.5in';
+        gridContainer.style.boxSizing = 'border-box';
+        gridContainer.style.display = 'grid';
+        gridContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
+        gridContainer.style.gridTemplateRows = 'repeat(5, 1fr)';
+        gridContainer.style.gap = '0.1in';
+
+        // Clear previous content
+        previewContainer.innerHTML = '';
+        previewContainer.appendChild(gridContainer);
+
+        // Create and render product cards using SimpleProductCard
+        for (const product of products) {
+          const cardContainer = document.createElement('div');
+          cardContainer.style.width = '100%';
+          cardContainer.style.height = '100%';
+
+          const productCard = new SimpleProductCard(product);
+          await productCard.attachTo(cardContainer);
+
+          gridContainer.appendChild(cardContainer);
+        }
+
+        // Enable download buttons
+        if (downloadAllPdfBtn) downloadAllPdfBtn.disabled = false;
+
+        // Log dimensions
+        setTimeout(logElementHeights, 500);
+
+      } catch (error) {
+        console.error('Error loading page preview:', error);
+        debugLog(`Error loading preview: ${error.message}`);
+        debugLog(`Error details: ${error.stack || 'No stack trace available'}`);
+        if (previewContainer) {
+          previewContainer.innerHTML = `<div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px;">
+            <h3>Error Loading Preview</h3>
+            <p>${error.message}</p>
+            <details>
+              <summary>Technical Details</summary>
+              <pre>${error.stack || 'No stack trace available'}</pre>
+            </details>
+          </div>`;
+        }
+      }
+    }
+
+    function updateDownloadButtons() {
+      // Enable/disable the download selected button based on selection
+      if (downloadSelectedPdfBtn) {
+        downloadSelectedPdfBtn.disabled = selectedPages.size === 0;
+      }
+
+      // Also update the "all pages" button based on whether there are valid pages
+      if (downloadAllPdfBtn) {
+        downloadAllPdfBtn.disabled = pages.length === 0;
+      }
+    }
+
+    // Multi-page PDF generation
+    async function generateMultiPagePDF(pageIds) {
+      debugLog(`Generating multi-page PDF for ${pageIds.length} pages`);
+
+      // Show loading indicator
+      const loadingIndicator = document.createElement('div');
+      loadingIndicator.style.position = 'fixed';
+      loadingIndicator.style.top = '0';
+      loadingIndicator.style.left = '0';
+      loadingIndicator.style.width = '100%';
+      loadingIndicator.style.height = '100%';
+      loadingIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+      loadingIndicator.style.display = 'flex';
+      loadingIndicator.style.justifyContent = 'center';
+      loadingIndicator.style.alignItems = 'center';
+      loadingIndicator.style.zIndex = '10000';
+      loadingIndicator.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+          <h3>Generating PDF</h3>
+          <p>Creating multi-page PDF (0/${pageIds.length})...</p>
+          <div id="progress-bar" style="width: 100%; height: 20px; background: #eee; border-radius: 10px; margin-top: 10px;">
+            <div id="progress" style="width: 0%; height: 100%; background: #4CAF50; border-radius: 10px;"></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(loadingIndicator);
+
+      let downloadSucceeded = false; // Flag to track success
+      try {
+        // Get jsPDF constructor
+        const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
+        if (!jsPDF) {
+          throw new Error('jsPDF library not loaded');
+        }
+
+        // Create a new PDF document
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'in',
+          format: 'letter'
+        });
+
+        // Process each page
+        let pageCount = 0;
+        const tempPreviewContainer = document.createElement('div');
+        tempPreviewContainer.style.position = 'absolute';
+        tempPreviewContainer.style.left = '-9999px';
+        tempPreviewContainer.style.width = '8.5in';
+        document.body.appendChild(tempPreviewContainer);
+
+        // Create grid container for cards
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'printable-page';
+        gridContainer.style.width = '8.5in';
+        gridContainer.style.height = '11in';
+        gridContainer.style.padding = '0.5in';
+        gridContainer.style.boxSizing = 'border-box';
+        gridContainer.style.display = 'grid';
+        gridContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
+        gridContainer.style.gridTemplateRows = 'repeat(5, 1fr)';
+        gridContainer.style.gap = '0.1in';
+        tempPreviewContainer.appendChild(gridContainer);
+
+        for (let i = 0; i < pageIds.length; i++) {
+          const pageId = pageIds[i];
+          const page = pages.find(p => p.id === pageId);
+
+          if (page) {
+            // Update loading message
+            const progressMsg = loadingIndicator.querySelector('p');
+            progressMsg.textContent = `Creating multi-page PDF (${i+1}/${pageIds.length})...`;
+
+            // Update progress bar
+            const progress = loadingIndicator.querySelector('#progress');
+            progress.style.width = `${((i+1) / pageIds.length) * 100}%`;
+
+            // Fetch product cards for this page
+            const products = await fetchProductCards(page.id);
+
+            if (products.length === 0) {
+              debugLog(`No products found for page ${page.id}, skipping`);
+              continue;
+            }
+
+            // Clear previous cards
+            gridContainer.innerHTML = '';
+
+            // Create and render product cards using SimpleProductCard
+            for (const product of products) {
+              const cardContainer = document.createElement('div');
+              cardContainer.style.width = '100%';
+              cardContainer.style.height = '100%';
+
+              const productCard = new SimpleProductCard(product);
+              await productCard.attachTo(cardContainer);
+
+              gridContainer.appendChild(cardContainer);
+            }
+
+            // Wait for all QR codes to generate
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Hide remove buttons before capture
+            const removeButtons = gridContainer.querySelectorAll('.remove-card');
+            console.log(`[PDF Gen] Found ${removeButtons.length} remove buttons to hide.`);
+            removeButtons.forEach(btn => {
+              btn.style.display = 'none';
+              btn.style.visibility = 'hidden';
+            });
+            
+            // Capture the page
+            const canvas = await html2canvas(gridContainer, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: 'white',
+              logging: false
+            });
+
+            // Add a new page (except for the first page)
+            if (pageCount > 0) {
+              pdf.addPage();
+            }
+
+            // Add the image to the PDF
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            pdf.addImage(imgData, 'JPEG', 0, 0, 8.5, 11, '', 'FAST');
+
+            pageCount++;
+          }
+        }
+
+        // Clean up the temporary container
+        document.body.removeChild(tempPreviewContainer);
+
+        // Only save if we have at least one page
+        if (pageCount > 0) {
+          const queueInfo = queues.find(q => q.id === selectedQueueId);
+          const queueName = queueInfo ? queueInfo.name.replace(/\s+/g, '-').toLowerCase() : 'queue';
+
+          // Save the PDF
+          pdf.save(`${queueName}-${pageCount}-pages.pdf`);
+          debugLog(`PDF saved with ${pageCount} pages`);
+
+          // Mark pages as downloaded via API - This now happens in server.js
+          // We still make the call to trigger the backend update
+          const response = await fetch('/api/pages/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pageIds, queueId: selectedQueueId })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to mark pages as downloaded');
+          }
+
+          // If we reach here, the API call was successful
+          downloadSucceeded = true;
+          debugLog('Backend successfully processed download status updates.');
+
+        } else {
+          debugLog('No pages with content were generated, skipping download and status update.');
+        }
+
+      } catch (error) {
+        console.error('Error generating multi-page PDF:', error);
+        debugLog(`Error: ${error.message}`);
+        alert('Error generating PDF: ' + error.message);
+      } finally {
+        // Remove loading indicator
+        document.body.removeChild(loadingIndicator);
+
+        // If download API call was successful, refresh the pages view for the current queue
+        if (downloadSucceeded && selectedQueueId) {
+          debugLog('Download successful, refreshing page list for current queue...');
+          loadPagesForQueue(selectedQueueId);
+        }
+      }
+    }
+
+    // Search functions for vendor search
+    async function searchVendors(event) {
+      const term = event.target.value.trim();
+      const resultsContainer = document.getElementById('vendor-search-results');
+
+      if (!resultsContainer) return;
+
+      // Clear results if input is too short
+      if (!term || term.length < 2) {
+        resultsContainer.innerHTML = '';
+        return;
+      }
+
+      // Show loading state
+      resultsContainer.innerHTML = '<div class="loading">Searching...</div>';
+
+      try {
+        debugLog(`Searching for vendor: ${term}`);
+        const response = await fetch(`/api/shopify/vendors?query=${encodeURIComponent(term)}`);
+
+        if (!response.ok) {
+          throw new Error(`Search failed: ${response.status}`);
+        }
+
+        const vendors = await response.json();
+        debugLog(`Found ${vendors.length} vendors matching "${term}"`);
+
+        if (!vendors || vendors.length === 0) {
+          resultsContainer.innerHTML = '<div class="no-results">No vendors found</div>';
+          return;
+        }
+
+        // Create results HTML
+        const resultsHtml = vendors.map(vendor =>
+          `<div class="vendor-result" data-vendor="${encodeURIComponent(vendor)}">${vendor}</div>`
+        ).join('');
+
+        resultsContainer.innerHTML = resultsHtml;
+
+        // Add click handlers
+        Array.from(resultsContainer.getElementsByClassName('vendor-result')).forEach(el => {
+          el.addEventListener('click', () => {
+            const vendorName = decodeURIComponent(el.dataset.vendor);
+            document.getElementById('vendor-search').value = vendorName;
+            resultsContainer.innerHTML = '';
+            searchQueuesByVendor(vendorName);
+          });
+        });
+      } catch (error) {
+        resultsContainer.innerHTML = `<div class="error">Search failed: ${error.message}</div>`;
+        debugLog(`Error searching vendors: ${error.message}`);
+      }
+    }
+
+    // Search queues by vendor name
+    async function searchQueuesByVendor(vendorName) {
+      debugLog(`Searching queues for vendor: ${vendorName}`);
+      selectedVendorName = vendorName;
+
+      // Show sync button when vendor is selected
+      const syncButton = document.getElementById('sync-vendor-btn');
+      if (syncButton) {
+        syncButton.style.display = 'inline-block';
+        syncButton.onclick = async () => {
+          try {
+            console.log('🔥 [CLIENT] Sync button clicked for vendor:', vendorName);
+            syncButton.disabled = true;
+            syncButton.textContent = 'Syncing...';
+
+            console.log('🔥 [CLIENT] Making sync request to server...');
+            const response = await fetch('/api/vendor/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ vendorName })
+            });
+
+            console.log('🔥 [CLIENT] Server response status:', response.status);
+            const result = await response.json();
+
+            if (!response.ok) {
+              throw new Error(result.error || `Sync failed with status: ${response.status}`);
+            }
+
+            // Format user-friendly message
+            let message = '';
+            if (result.details?.counts) {
+              const counts = result.details.counts;
+              const created = counts.products_created;
+              const updated = counts.products_updated;
+              const failed = counts.products_failed;
+
+              if (created > 0 || updated > 0) {
+                message = `Successfully synced ${vendorName}:\n\n`;
+
+                // Show all created products
+                result.details.operations
+                  .filter(op => op.type === 'product_created')
+                  .forEach(op => {
+                    message += `Added: ${op.name} - $${op.price}\n`;
+                  });
+
+                // Show all updated products
+                result.details.operations
+                  .filter(op => op.type === 'product_updated')
+                  .forEach(op => {
+                    message += `Updated: ${op.name} - $${op.price}\n`;
+                  });
+
+                // Find the queue and its pages
+                const queueOp = result.details.operations.find(op => op.type === 'queue_created');
+                const pageOps = result.details.operations.filter(op => op.type === 'page_created');
+
+                if (queueOp && pageOps.length) {
+                  message += `\nYou can find these products on `;
+                  if (pageOps.length === 1) {
+                    message += `Page ${pageOps[0].id} in Queue ${queueOp.id}`;
+                  } else {
+                    message += `Pages ${pageOps.map(p => p.id).join(', ')} in Queue ${queueOp.id}`;
+                  }
+                }
+              } else if (failed > 0) {
+                message = `Unable to sync some products for ${vendorName}. Please try again or contact support.`;
+              } else {
+                message = `${vendorName}'s products are already up to date. No changes needed.`;
+              }
+            } else {
+              message = result.summary || `Finished checking ${vendorName}'s products`;
+            }
+
+            showToast(message);
+
+            // Refresh just the queue list after a short delay
+            setTimeout(async () => {
+              const searchInput = document.getElementById('vendor-search');
+              if (searchInput) {
+                searchInput.value = vendorName;
+                await searchQueuesByVendor(vendorName);
+              }
+            }, 3000);  // Increased delay before refresh to match longer toast
+
+          } catch (error) {
+            console.error('Error during sync:', error);
+            showToast('Sync failed. Please try again.', true);
+          } finally {
+            syncButton.disabled = false;
+            syncButton.textContent = 'Sync Vendor Products';
+          }
+        };
+      }
+
+      try {
+        // Use API to filter queues by vendor name
+        const response = await fetch(`/api/queues?vendor=${encodeURIComponent(vendorName)}`);
+        if (!response.ok) {
+          throw new Error(`Error fetching queues: ${response.status} ${response.statusText}`);
+        }
+
+        const vendorQueues = await response.json();
+        debugLog(`Fetched ${vendorQueues.length} queues for vendor ${vendorName} from API`);
+
+        if (vendorQueues.length === 0) {
+          debugLog('No queues found for the vendor');
+          queues = [];
+          renderQueues();
+
+          // Clear button states
+          if (downloadAllPdfBtn) downloadAllPdfBtn.disabled = true;
+          if (downloadSelectedPdfBtn) downloadSelectedPdfBtn.disabled = true;
+
+          // Clear pages when no queues
+          pages = [];
+          renderPages();
+          if (previewContainer) previewContainer.innerHTML = '<p>No queues found for this vendor</p>';
+          return;
+        }
+
+        if (vendorQueues.length > 0) {
+          debugLog(`Found ${vendorQueues.length} queues for vendor: ${vendorName}`);
+          queues = vendorQueues;
+        } else {
+          debugLog(`No queues found for vendor: ${vendorName}`);
+          // Set a message queue
+          queues = [];
+        }
+
+        // Render the queue
+        renderQueues();
+
+        // Automatically select the first queue if it exists
+        if (queues.length > 0) {
+          selectQueue(queues[0].id);
+        } else {
+          // Clear pages if no valid queue
+          pages = [];
+          renderPages();
+          if (previewContainer) previewContainer.innerHTML = '<p>No queues found for this vendor</p>';
+
+          // Make sure buttons are disabled
+          if (downloadAllPdfBtn) downloadAllPdfBtn.disabled = true;
+          if (downloadSelectedPdfBtn) downloadSelectedPdfBtn.disabled = true;
+        }
+
+      } catch (error) {
+        debugLog(`Error searching queues by vendor: ${error.message}`);
+        // Set error queue
+        queues = [];
+        debugLog('Error case, using empty queue array');
+        renderQueues();
+
+        // Make sure buttons are disabled
+        if (downloadAllPdfBtn) downloadAllPdfBtn.disabled = true;
+        if (downloadSelectedPdfBtn) downloadSelectedPdfBtn.disabled = true;
+
+        // Clear pages
+        pages = [];
+        renderPages();
+      }
+    }
+
+    // Initialize the app with vendor search only
+    async function initializeApp() {
+      try {
+        debugLog('Initializing application...');
+
+        // Add event listener for vendor search
+        const vendorSearchInput = document.getElementById('vendor-search');
+        if (vendorSearchInput) {
+          // Use debounce to limit API requests
+          vendorSearchInput.addEventListener('input', debounce(searchVendors, 300));
+
+          // Add click outside handler to close search results
+          document.addEventListener('click', (e) => {
+            const resultsContainer = document.getElementById('vendor-search-results');
+            if (resultsContainer && !resultsContainer.contains(e.target) && !vendorSearchInput.contains(e.target)) {
+              resultsContainer.innerHTML = '';
+            }
+          });
+
+          // Set focus to the search input
+          setTimeout(() => {
+            vendorSearchInput.focus();
+          }, 500);
+        }
+
+        // Start with empty state - only vendor search is the entry point
+        queues = [];
+        pages = [];
+        selectedQueueId = null;
+        selectedPageId = null;
+
+        // Initialize the UI sections as hidden initially
+        document.getElementById('queues-section').style.display = 'none';
+        document.getElementById('pages-section').style.display = 'none';
+        document.getElementById('preview-section').style.display = 'none';
+
+        // Disable download buttons initially
+        downloadAllPdfBtn.disabled = true;
+        downloadSelectedPdfBtn.disabled = true;
+
+        debugLog('Application initialized successfully');
+      } catch (error) {
+        console.error('Error initializing application:', error);
+        debugLog(`Error: ${error.message}`);
+      }
+    }
+
+    // Debounce function for search input
+    function debounce(func, wait) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+
+    // Run initialization as soon as the page loads
+    initializeApp();
+
+    // --- NEW: Add Product Search Logic for Preview Header ---
+    const previewSearchInput = document.getElementById('preview-search-input');
+    const previewSearchResultsContainer = document.getElementById('preview-search-results');
+
+    if (previewSearchInput && previewSearchResultsContainer) {
+      console.log('Adding event listener to preview search input');
+
+      // Function to render search results
+      function renderPreviewSearchResults(products) {
+        // Get the input element to position the dropdown relative to it
+        const inputRect = previewSearchInput.getBoundingClientRect();
+        const containerRect = previewSearchResultsContainer.offsetParent.getBoundingClientRect();
+
+        // Calculate position - align left edge with input, place below input
+        const top = inputRect.bottom - containerRect.top + 2; // Position below input + small gap
+        const left = inputRect.left - containerRect.left; // Align left edge
+        const width = inputRect.width; // Match input width
+
+        // Clear previous styles/content
+        previewSearchResultsContainer.innerHTML = '';
+        previewSearchResultsContainer.style.position = 'absolute';
+        previewSearchResultsContainer.style.top = `${top}px`;
+        previewSearchResultsContainer.style.left = `${left}px`;
+        previewSearchResultsContainer.style.width = `${width}px`;
+        previewSearchResultsContainer.style.backgroundColor = 'white';
+        previewSearchResultsContainer.style.border = '1px solid #bbb';
+        previewSearchResultsContainer.style.borderTop = 'none';
+        previewSearchResultsContainer.style.borderRadius = '0 0 4px 4px';
+        previewSearchResultsContainer.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+        previewSearchResultsContainer.style.maxHeight = '300px';
+        previewSearchResultsContainer.style.overflowY = 'auto';
+
+        if (!products || products.length === 0) {
+          previewSearchResultsContainer.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">No products found</div>';
+          return;
+        }
+
+        const top5 = products.slice(0, 5);
+
+        const resultsHtml = top5.map(product => `
+          <div class="preview-search-item" data-product-id='${product.id}' style="display: flex; align-items: center; gap: 10px; padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;">
+            ${product.image_url ?
+              `<img src="${product.image_url}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 3px; flex-shrink: 0;">` :
+              '<div style="width: 40px; height: 40px; background: #eee; border-radius: 3px; flex-shrink: 0;"></div>'
+            }
+            <div style="flex-grow: 1; min-width: 0;">
+              <div style="font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${product.title}</div>
+              <div style="font-size: 11px; color: #555;">ID: ${product.id} | Price: ${product.price}</div>
+            </div>
+          </div>
+        `).join('');
+
+        previewSearchResultsContainer.innerHTML = resultsHtml;
+
+        const items = previewSearchResultsContainer.querySelectorAll('.preview-search-item');
+        if (items.length > 0) {
+          items[items.length - 1].style.borderBottom = 'none';
+        }
+
+        previewSearchResultsContainer.querySelectorAll('.preview-search-item').forEach(item => {
+          item.addEventListener('mouseenter', () => item.style.backgroundColor = '#f0f0f0');
+          item.addEventListener('mouseleave', () => item.style.backgroundColor = 'white');
+        });
+
+        previewSearchResultsContainer.querySelectorAll('.preview-search-item').forEach(item => {
+          item.addEventListener('click', async () => {
+            const productIdString = item.dataset.productId;
+            const productId = parseInt(productIdString, 10);
+
+            // Find product using the parsed integer ID
+            const product = products.find(p => p.id === productId);
+
+            if (!product || !selectedPageId) {
+              console.error('Missing product data or selected page ID', { productId, product, selectedPageId });
+              return;
+            }
+
+            // --- Disable UI during operation ---
+            console.log(`Attempting to add product ${productId} (${product.title}) to page ${selectedPageId}`);
+            previewSearchInput.disabled = true;
+            previewSearchResultsContainer.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">Adding...</div>'; // Indicate activity
+
+            try {
+              // 1. Fetch current page data
+              const pageResponse = await fetch(`/api/pages/${selectedPageId}`);
+              if (!pageResponse.ok) throw new Error(`Failed to fetch page ${selectedPageId}`);
+              const pageData = await pageResponse.json();
+
+              // 2. Check current card count and Append new product ID
+              let cardIds = [];
+              try {
+                cardIds = JSON.parse(pageData.card_ids || '[]');
+                if (!Array.isArray(cardIds)) cardIds = [];
+              } catch { cardIds = []; }
+
+              // *** Check if page is full ***
+              if (cardIds.length >= 10) {
+                console.warn(`Page ${selectedPageId} is full (has ${cardIds.length} cards). Cannot add product ${productId}.`);
+                showToast(`Page ${selectedPageId} is full. Cannot add more items.`, true); // Show error toast
+                // Clear search results but leave input enabled for next action
+                previewSearchResultsContainer.innerHTML = '';
+                previewSearchInput.disabled = false;
+                return; // Stop the add process
+              }
+              // *** End check ***
+
+              cardIds.push(product.id); // Add to the end
+
+              // 3. Update page with new card_ids array
+              const updatePageResponse = await fetch(`/api/pages/${selectedPageId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ card_ids: JSON.stringify(cardIds) })
+              });
+              if (!updatePageResponse.ok) throw new Error('Failed to update page card_ids');
+
+              // 4. Update the product card itself to assign page_id
+              const updateCardResponse = await fetch('/api/product-cards/position', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  card_id: product.id,
+                  page_id: selectedPageId,
+                  position: null, // Backend uses page_id and card_ids order
+                  status: 'processed'
+                })
+              });
+              if (!updateCardResponse.ok) throw new Error('Failed to update product card position/page assignment');
+
+              console.log(`Successfully added product ${productId} (${product.title}) to page ${selectedPageId}`);
+              showToast(`Added ${product.title} to page ${selectedPageId}.`);
+
+              // 5. Refresh the preview - Refetching the page data is crucial here
+              const updatedPage = await fetchPages(selectedQueueId).then(pages => pages.find(p => p.id === selectedPageId));
+              if (updatedPage) {
+                loadPagePreview(updatedPage);
+              } else {
+                 // Fallback: Reload current queue/page view if specific page fetch fails
+                 if (selectedQueueId) loadPagesForQueue(selectedQueueId);
+              }
+
+            } catch (error) {
+              console.error('Error adding product to page:', error);
+              showToast(`Failed to add product: ${error.message}`, true);
+            } finally {
+              previewSearchInput.value = ''; // Clear input
+              previewSearchInput.disabled = false; // Re-enable input
+            }
+          });
+        });
+      }
+
+      // Debounced search handler
+      const handlePreviewSearch = debounce(async (event) => {
+        const query = event.target.value.trim();
+
+        if (query.length < 2) {
+          previewSearchResultsContainer.innerHTML = ''; // Clear results
+          return;
+        }
+
+        if (!selectedPageId) {
+          previewSearchResultsContainer.innerHTML = '<div style="padding: 10px; color: #dc3545; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 0 0 4px 4px;">Select a page first!</div>';
+          return;
+        }
+        if (!selectedVendorName) {
+          previewSearchResultsContainer.innerHTML = '<div style="padding: 10px; color: #dc3545; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 0 0 4px 4px;">Select a vendor first!</div>';
+          return;
+        }
+
+        console.log(`Searching for: ${query} for vendor: ${selectedVendorName}`);
+        previewSearchResultsContainer.innerHTML = '<div style="padding: 10px; text-align: center; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 4px 4px;">Searching...</div>';
+
+        try {
+          const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}&vendor=${encodeURIComponent(selectedVendorName)}`);
+          if (!response.ok) throw new Error('Search request failed');
+          const products = await response.json();
+          renderPreviewSearchResults(products);
+        } catch (error) {
+          console.error('Search error:', error);
+          previewSearchResultsContainer.innerHTML = '<div style="padding: 10px; color: #dc3545; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 0 0 4px 4px;">Error searching</div>';
+        }
+      }, 300);
+
+      previewSearchInput.addEventListener('input', handlePreviewSearch);
+
+      // Hide results when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!previewSearchInput.contains(e.target) && !previewSearchResultsContainer.contains(e.target)) {
+          previewSearchResultsContainer.innerHTML = '';
+        }
+      });
+
+    } else {
+       console.error('Preview search input or results container not found!');
+    }
+    // --- END: Add Product Search Logic ---
+
+    // These buttons are now removed from the UI
+
+    downloadAllPdfBtn.addEventListener('click', async () => {
+      try {
+        debugLog('Downloading all pages as single PDF...');
+        const pageIds = pages.map(page => page.id);
+        await generateMultiPagePDF(pageIds);
+        debugLog('All pages PDF download complete');
+      } catch (error) {
+        console.error('Error downloading all pages PDF:', error);
+        debugLog(`Error: ${error.message}`);
+        alert('Error downloading all pages PDF: ' + error.message);
+      }
+    });
+
+    downloadSelectedPdfBtn.addEventListener('click', async () => {
+      try {
+        debugLog('Downloading selected pages as single PDF...');
+        const pageIds = Array.from(selectedPages);
+        await generateMultiPagePDF(pageIds);
+        debugLog('Selected pages PDF download complete');
+      } catch (error) {
+        console.error('Error downloading selected pages PDF:', error);
+        debugLog(`Error: ${error.message}`);
+        alert('Error downloading selected pages PDF: ' + error.message);
+      }
+    });
+
+    // Log initial page load
+    debugLog('Page loaded successfully');
+
+    // Add modal handling code
+    function showSyncResults(results) {
+      const modal = document.getElementById('sync-modal');
+      const content = document.getElementById('sync-modal-content');
+      const closeBtn = modal.querySelector('.sync-modal-close');
+
+      let html = '';
+
+      if (results.newCards > 0) {
+        html += '<h4>New Products Added:</h4>';
+        results.newProducts.forEach(product => {
+          html += `
+            <div class="sync-result-item">
+              <strong>ID:</strong> ${product.id}<br>
+              <strong>Title:</strong> ${product.title}<br>
+              <strong>Price:</strong> ${product.price}<br>
+              <strong>Page ID:</strong> ${product.pageId}<br>
+              <strong>Queue ID:</strong> ${product.queueId}
+            </div>
+          `;
+        });
+      }
+
+      if (results.updatedCards > 0) {
+        html += '<h4>Updated Products:</h4>';
+        results.updatedProducts.forEach(product => {
+          html += `
+            <div class="sync-result-item">
+              <strong>ID:</strong> ${product.id}<br>
+              <strong>Title:</strong> ${product.title}<br>
+              <strong>Price:</strong> ${product.price}<br>
+              <strong>Page ID:</strong> ${product.pageId}<br>
+              <strong>Queue ID:</strong> ${product.queueId}
+            </div>
+          `;
+        });
+      }
+
+      if (results.newCards === 0 && results.updatedCards === 0) {
+        html = '<p>No changes were needed. All products are up to date.</p>';
+      }
+
+      content.innerHTML = html;
+      modal.style.display = 'block';
+
+      closeBtn.onclick = function() {
+        modal.style.display = 'none';
+      };
+
+      window.onclick = function(event) {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      };
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Harding Academy QR Code Buddy</h1>
+      <p class="subtitle">Manage and print QR code cards for artists' work</p>
+    </header>
+
+    <div class="split-container">
+      <div class="section split-section">
+        <h2>Search By Vendor</h2>
+        <div class="vendor-search-container">
+          <div class="search-field">
+            <input type="text" id="vendor-search" placeholder="Enter vendor name (e.g., Ben Caldwell)">
+            <div id="vendor-search-results" class="search-results"></div>
+          </div>
+          <div class="download-controls" style="margin-top: 15px;">
+            <button id="sync-vendor-btn" class="action-button" style="display: none;">Sync Vendor Products</button>
+            <button id="download-all-pdf-btn" disabled>Download All Pages as PDF</button>
+            <button id="download-selected-pdf-btn" disabled>Download Selected Pages</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section split-section">
+        <div class="section-header">
+          <h2>Sync Logs</h2>
+          <div class="sync-controls">
+            <button id="syncAllButton">Sync All Vendors</button>
+            <span id="lastSyncStatus"></span>
+          </div>
+        </div>
+        <sync-log-feed id="todaySyncLogs"></sync-log-feed>
+      </div>
+    </div>
+
+    <div class="section" id="queues-section" style="display:none;">
+      <h2>Queue(s)</h2>
+      <div id="queue-container" class="queue-container">
+        <!-- Queue cards will be rendered here -->
+      </div>
+    </div>
+
+    <div class="section" id="pages-section" style="display:none;">
+      <h2>Pages</h2>
+      <div id="pages-container" class="pages-container">
+        <!-- Page cards will be rendered here -->
+      </div>
+    </div>
+
+    <div class="section" id="preview-section" style="display:none;">
+      <div class="preview-header" style="display: flex; align-items: center; margin-bottom: 15px;">
+        <h2 id="preview-title" style="margin: 0; flex-shrink: 0;">Page Preview</h2>
+        <div style="flex-grow: 1;"></div>
+        <span class="fake-add-button" style="display: inline-block; padding: 7px 12px; background-color: #e9ecef; border: 1px solid #bbb; border-right: none; border-radius: 4px 0 0 4px; font-size: 14px; color: #495057; white-space: nowrap;">Add new item</span>
+        <input type="search" id="preview-search-input" placeholder="Search to add..." style="padding: 7px 10px; border: 1px solid #bbb; border-radius: 0 4px 4px 0; font-size: 14px; width: 300px;">
+      </div>
+      <!-- Add Results Dropdown Container -->
+      <div id="preview-search-results" style="position: relative; z-index: 100;">
+        <!-- Results will be injected here by JS -->
+        <!-- Styling for absolute positioning will be handled by JS/CSS if needed -->
+      </div>
+      <div id="preview-container" class="preview-container">
+        <!-- PrintablePagePreview will be rendered here -->
+      </div>
+    </div>
+
+    <div id="debug-panel" class="section" style="margin-top: 30px;">
+      <h3>Debug Panel</h3>
+      <div id="debug-output" style="background: var(--background-color); padding: 10px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-family: monospace; border: 1px solid var(--border-color);"></div>
+    </div>
+
+    <!-- Add sync results modal -->
+    <div id="sync-modal" class="sync-modal">
+      <span class="sync-modal-close">&times;</span>
+      <h3>Sync Results</h3>
+      <div id="sync-modal-content" class="sync-modal-content"></div>
+    </div>
+  </div>
+
+  <!-- Load Services -->
+  <script src="/js/services/SyncLogService.js"></script>
+
+  <!-- Load Components -->
+  <script src="/js/SyncLogFeed.js"></script>
+
+  <script>
+    // Initialize services
+    const syncLogService = new SyncLogService();
+
+    // Get UI elements for sync logs
+    const syncLogFeed = document.getElementById('todaySyncLogs');
+    const syncAllButton = document.getElementById('syncAllButton');
+    const lastSyncStatus = document.getElementById('lastSyncStatus');
+
+    // Configure sync log feed to show vendor names
+    syncLogFeed.setShowVendorName(true);
+
+    /**
+     * Update today's sync logs
+     */
+    async function updateTodayLogs() {
+      try {
+        const logs = await syncLogService.fetchTodayLogs();
+        syncLogFeed.setLogs(logs);
+
+        // Update last sync status if we have logs
+        if (logs.length > 0) {
+          const lastSync = logs[0];
+          const lastSyncTime = new Date(lastSync.run_at).toLocaleString('en-US', {
+            month: 'numeric',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+          lastSyncStatus.textContent = `Last sync: ${lastSyncTime}`;
+        }
+      } catch (error) {
+        console.error('Error updating today logs:', error);
+        lastSyncStatus.textContent = 'Error loading sync status';
+      }
+    }
+
+    /**
+     * Handle sync all button click
+     */
+    async function handleSyncAll() {
+      syncAllButton.disabled = true;
+      syncAllButton.textContent = 'Syncing All Vendors...';
+
+      try {
+        const response = await fetch('/api/sync/all', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.details || 'Failed to sync vendors');
+        }
+
+        const result = await response.json();
+
+        // Show toast with sync results
+        let message = result.summary;
+        if (result.status === 'partial') {
+          message += '\n\nSome vendors failed to sync. Check logs for details.';
+        } else if (result.status === 'failure') {
+          message += '\n\nAll vendor syncs failed. Check logs for details.';
+        }
+
+        showToast(message, result.status === 'failure');
+
+        // Wait a moment for sync logs to be written then refresh
+        setTimeout(updateTodayLogs, 1000);
+
+      } catch (error) {
+        console.error('Error syncing all vendors:', error);
+        showToast('Failed to sync vendors: ' + error.message, true);
+      } finally {
+        syncAllButton.disabled = false;
+        syncAllButton.textContent = 'Sync All Vendors';
+      }
+    }
+
+    // Add event listeners
+    syncAllButton.addEventListener('click', handleSyncAll);
+
+    // Load initial logs
+    updateTodayLogs();
+
+    // Refresh logs periodically
+    setInterval(updateTodayLogs, 30000); // Every 30 seconds
+  </script>
+</body>
+</html>

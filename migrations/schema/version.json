@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "lastUpdated": "2024-04-28",
+  "changes": [
+    {
+      "version": "1.0.0",
+      "date": "2024-04-28",
+      "description": "Initial schema snapshot after removing uid columns",
+      "author": "team",
+      "branch": "production"
+    }
+  ]
+}
