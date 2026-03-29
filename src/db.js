@@ -108,7 +108,7 @@ export const productCards = {
       return result.rows;
     } catch (error) {
       console.error('[DB] Error getting product cards by Shopify IDs:', error);
-      return [];
+      throw error;
     }
   },
 
@@ -375,8 +375,7 @@ export const pages = {
       return result.rows;
     } catch (error) {
       console.error('[DB] Error fetching all pages:', error);
-      // Return empty array instead of throwing to prevent app crash
-      return [];
+      throw error;
     }
   },
 
@@ -398,8 +397,7 @@ export const pages = {
       return result.rows;
     } catch (error) {
       console.error(`[DB] Error fetching pages for queue_id ${queueId}:`, error);
-      // Return empty array instead of throwing to prevent app crash
-      return [];
+      throw error;
     }
   },
 
@@ -480,7 +478,7 @@ export const queues = {
       return result.rows;
     } catch (error) {
       console.error('[DB] Error fetching all queues:', error);
-      return [];
+      throw error;
     }
   },
 

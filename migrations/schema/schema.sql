@@ -277,8 +277,39 @@ ALTER DEFAULT PRIVILEGES FOR ROLE cloud_admin IN SCHEMA public GRANT ALL ON SEQU
 
 ALTER DEFAULT PRIVILEGES FOR ROLE cloud_admin IN SCHEMA public GRANT SELECT,INSERT,REFERENCES,DELETE,TRIGGER,TRUNCATE,UPDATE ON TABLES TO neon_superuser WITH GRANT OPTION;
 
+--
+-- Name: sync_logs; Type: TABLE; Schema: public
+--
+
+CREATE SEQUENCE IF NOT EXISTS public.sync_logs_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+CREATE TABLE IF NOT EXISTS public.sync_logs (
+    id integer NOT NULL DEFAULT nextval('public.sync_logs_id_seq'::regclass),
+    vendor_name text NOT NULL,
+    status text NOT NULL,
+    run_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    summary text,
+    details text DEFAULT '{}',
+    created_by text,
+    duration_ms integer
+);
+
+ALTER SEQUENCE public.sync_logs_id_seq OWNED BY public.sync_logs.id;
+
+ALTER TABLE ONLY public.sync_logs
+    ADD CONSTRAINT sync_logs_pkey PRIMARY KEY (id);
+
+CREATE INDEX idx_sync_logs_vendor_name ON public.sync_logs USING btree (vendor_name);
+CREATE INDEX idx_sync_logs_run_at ON public.sync_logs USING btree (run_at);
+CREATE INDEX idx_sync_logs_status ON public.sync_logs USING btree (status);
+
 
 --
 -- PostgreSQL database dump complete
 --
-
