@@ -17,3 +17,5 @@ node_modules
 
 # Generated files
 /generated/
+logs/
+workspace/
