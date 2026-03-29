@@ -42,12 +42,6 @@ const pool = new pg.Pool({
 // Product Cards Interface
 export const productCards = {
   async createProductCard(data) {
-    console.log('[DB] Creating product card - Input:', {
-      shopify_id: data.shopify_id || data.id,
-      product_name: data.product_name || data.title,
-      artist_name: data.artist_name || data.vendor,
-      price: data.price?.toString() || '0.00'
-    });
     const query = `
       INSERT INTO product_cards (
         shopify_id,
@@ -80,11 +74,6 @@ export const productCards = {
 
     try {
       const result = await execute(query, values);
-      console.log('[DB] Successfully created product card:', {
-        id: result.rows[0].id,
-        shopify_id: result.rows[0].shopify_id,
-        status: result.rows[0].status
-      });
       return result.rows[0];
     } catch (error) {
       console.error('[DB] Failed to create product card:', error);
@@ -93,23 +82,20 @@ export const productCards = {
   },
 
   async getAllProductCards() {
-    console.log('[DB] Fetching all product cards');
     try {
       const query = `
         SELECT * FROM product_cards
         ORDER BY created_at DESC
       `;
       const result = await execute(query);
-      console.log('[DB] Fetched product cards:', result.rows.length);
       return result.rows;
     } catch (error) {
       console.error('[DB] Error getting product cards:', error);
-      return [];
+      throw error;
     }
   },
 
   async getProductCardsByShopifyIds(shopifyIds) {
-    console.log('[DB] Fetching product cards by Shopify IDs:', shopifyIds);
     try {
       const params = shopifyIds.map((_, i) => `$${i + 1}`).join(',');
       const query = `
@@ -119,7 +105,6 @@ export const productCards = {
       `;
 
       const result = await execute(query, shopifyIds);
-      console.log('[DB] Found product cards:', result.rows.length);
       return result.rows;
     } catch (error) {
       console.error('[DB] Error getting product cards by Shopify IDs:', error);
@@ -128,10 +113,6 @@ export const productCards = {
   },
 
   async createProductCardsBulk(products) {
-    console.log('[DB] Starting bulk product card creation:', {
-      count: products.length,
-      first_product: products[0]?.shopify_id || products[0]?.id
-    });
 
     try {
       const client = await pool.connect();
@@ -139,7 +120,6 @@ export const productCards = {
 
       try {
         await client.query('BEGIN');
-        console.log('[DB] Started transaction for bulk creation');
 
         for (const product of products) {
           const query = `
@@ -174,11 +154,6 @@ export const productCards = {
 
           try {
             const result = await client.query(query, values);
-            console.log('[DB] Created product card in bulk:', {
-              id: result.rows[0].id,
-              shopify_id: result.rows[0].shopify_id,
-              status: result.rows[0].status
-            });
             cards.push(result.rows[0]);
           } catch (error) {
             console.error('[DB] Failed to create individual card in bulk:', {
@@ -190,10 +165,6 @@ export const productCards = {
         }
 
         await client.query('COMMIT');
-        console.log('[DB] Successfully committed bulk creation:', {
-          total_created: cards.length,
-          card_ids: cards.map(c => c.id)
-        });
         return cards;
       } catch (error) {
         await client.query('ROLLBACK');
@@ -217,10 +188,8 @@ export const productCards = {
 
   async markDownloaded(cardIds) {
     if (!cardIds || cardIds.length === 0) {
-      console.log('[DB] markDownloaded (cards): No card IDs provided.');
       return 0;
     }
-    console.log(`[DB] Marking product cards as downloaded: ${cardIds.join(',')}`);
     try {
       const query = `
         UPDATE product_cards
@@ -228,7 +197,6 @@ export const productCards = {
         WHERE id = ANY($1::text[])
       `;
       const result = await execute(query, [cardIds.map(id => String(id))]); // Ensure IDs are strings
-      console.log(`[DB] Marked ${result.rowCount} product cards as downloaded.`);
       return result.rowCount;
     } catch (error) {
       console.error('[DB] Error marking product cards as downloaded:', error);
@@ -237,7 +205,6 @@ export const productCards = {
   },
 
   async getProductCardsByVendor(vendorName) {
-    console.log('🔥 [DB] Fetching product cards for vendor:', vendorName);
 
     const query = `
       SELECT * FROM product_cards
@@ -247,7 +214,6 @@ export const productCards = {
 
     try {
       const result = await execute(query, [vendorName]);
-      console.log(`✅ [DB] Found ${result.rows.length} product cards for vendor ${vendorName}`);
       return result.rows;
     } catch (error) {
       console.error('🚨 [DB] Error fetching product cards by vendor:', error);
@@ -264,7 +230,6 @@ export const productCards = {
 // Pages Interface
 export const pages = {
   async createPage(data) {
-    console.log('[DB] Creating new page:', data);
     const query = `
       INSERT INTO pages (
         name,
@@ -302,12 +267,10 @@ export const pages = {
     ];
 
     const result = await execute(query, values);
-    console.log('[DB] Created page:', result.rows[0]);
     return result.rows[0];
   },
 
   async findAvailablePage(cardsPerPage = 10) {
-    console.log('[DB] Finding available page with space (max cards per page:', cardsPerPage, ')');
     try {
       // Get pages with card_ids array that has fewer than cardsPerPage items
       const query = `
@@ -317,7 +280,6 @@ export const pages = {
       `;
 
       const result = await execute(query);
-      console.log('[DB] Found', result.rows.length, 'ready pages to check');
 
       // Find first page with available space
       for (const page of result.rows) {
@@ -327,7 +289,6 @@ export const pages = {
 
           // If this page has space available
           if (cardIds.length < cardsPerPage) {
-            console.log('[DB] Using page:', page.id, 'with', cardIds.length, 'cards (capacity:', cardsPerPage, ')');
             return { page, availableSlots: cardsPerPage - cardIds.length };
           }
         } catch (parseError) {
@@ -337,7 +298,6 @@ export const pages = {
       }
 
       // No page with available space found
-      console.log('[DB] No available pages found with space, creating new page');
 
       // Create a new page as fallback
       const newPage = await this.createPage({
@@ -353,7 +313,6 @@ export const pages = {
   },
 
   async createAutoPagesFromUnprocessedCards(cardsPerPage = 10) {
-    console.log('[DB] Creating auto pages from unprocessed cards, limit:', cardsPerPage);
     // Create a new page
     const createPageQuery = `
       INSERT INTO pages (status, created_at)
@@ -362,7 +321,6 @@ export const pages = {
     `;
     const pageResult = await execute(createPageQuery);
     const page = pageResult.rows[0];
-    console.log('[DB] Created new page for auto assignment:', page.id);
 
     // Get unprocessed cards
     const cardsQuery = `
@@ -371,7 +329,6 @@ export const pages = {
       LIMIT $1
     `;
     const cardsResult = await execute(cardsQuery, [cardsPerPage]);
-    console.log('[DB] Found unprocessed cards:', cardsResult.rows.length);
 
     // Associate cards with the page by updating card_ids
     if (cardsResult.rows.length > 0) {
@@ -399,12 +356,10 @@ export const pages = {
     }
 
     const result = [{ ...page, cards: cardsResult.rows }];
-    console.log('[DB] Completed auto page creation:', result);
     return result;
   },
 
   async getAllPages() {
-    console.log('[DB] Fetching all pages');
     try {
       const query = `
         SELECT id, name, card_ids, created_at, updated_at, status, queue_id
@@ -412,11 +367,9 @@ export const pages = {
         ORDER BY created_at DESC
       `;
       const result = await execute(query);
-      console.log('[DB] Fetched pages:', result.rows.length);
 
       // Add better logging for debugging
       if (result.rows.length > 0) {
-        console.log('[DB] First page sample:', JSON.stringify(result.rows[0]));
       }
 
       return result.rows;
@@ -428,7 +381,6 @@ export const pages = {
   },
 
   async getPagesByQueueId(queueId) {
-    console.log(`[DB] Fetching pages for queue_id: ${queueId}`);
     try {
       const query = `
         SELECT id, name, card_ids, created_at, updated_at, status, queue_id
@@ -437,13 +389,10 @@ export const pages = {
         ORDER BY created_at DESC
       `;
       const result = await execute(query, [queueId]);
-      console.log(`[DB] Fetched ${result.rows.length} pages for queue_id: ${queueId}`);
 
       // Add better logging for debugging
       if (result.rows.length > 0) {
-        console.log('[DB] First page sample for queue:', JSON.stringify(result.rows[0]));
       } else {
-        console.log(`[DB] No pages found for queue_id: ${queueId}`);
       }
 
       return result.rows;
@@ -456,10 +405,8 @@ export const pages = {
 
   async markDownloaded(pageIds) {
     if (!pageIds || pageIds.length === 0) {
-      console.log('[DB] markDownloaded (pages): No page IDs provided.');
       return { updatedPages: [], cardIdsToUpdate: [] };
     }
-    console.log(`[DB] Marking pages as done/downloaded: ${pageIds.join(',')}`);
     try {
       const query = `
         UPDATE pages
@@ -468,7 +415,6 @@ export const pages = {
         RETURNING id, status, downloaded_at, card_ids
       `;
       const result = await execute(query, [pageIds]);
-      console.log(`[DB] Marked ${result.rowCount} pages as done.`);
 
       // Extract card IDs from updated pages
       let cardIdsToUpdate = [];
@@ -506,10 +452,6 @@ export const pages = {
 // Queues Interface
 export const queues = {
   async createQueue(data) {
-    console.log('[DB] Creating queue - Input:', {
-      name: data.name,
-      custom_data: data.custom_data || '{}'
-    });
 
     const query = `
       INSERT INTO queues (name, status, custom_data, created_at)
@@ -523,16 +465,11 @@ export const queues = {
     ];
 
     const result = await execute(query, values);
-    console.log('[DB] Successfully created queue:', {
-      id: result.rows[0].id,
-      name: result.rows[0].name
-    });
 
     return result.rows[0];
   },
 
   async getAllQueues() {
-    console.log('[DB] Fetching all queues');
     try {
       const query = `
         SELECT id, name, created_at, updated_at, status, custom_data
@@ -540,7 +477,6 @@ export const queues = {
         ORDER BY created_at DESC
       `;
       const result = await execute(query);
-      console.log('[DB] Fetched queues:', result.rows.length);
       return result.rows;
     } catch (error) {
       console.error('[DB] Error fetching all queues:', error);
@@ -550,10 +486,8 @@ export const queues = {
 
   async markProcessed(queueId) {
     if (!queueId) {
-      console.log('[DB] markProcessed (queue): No queue ID provided.');
       return null;
     }
-    console.log(`[DB] Marking queue ${queueId} as processed`);
     try {
       const query = `
         UPDATE queues
@@ -566,7 +500,6 @@ export const queues = {
         console.warn(`[DB] Queue ${queueId} not found for marking as processed.`);
         return null;
       }
-      console.log(`[DB] Marked queue ${queueId} as processed.`);
       return result.rows[0];
     } catch (error) {
       console.error(`[DB] Error marking queue ${queueId} as processed:`, error);

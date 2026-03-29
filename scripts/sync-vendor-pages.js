@@ -250,7 +250,7 @@ async function syncProduct(shopifyProduct, summary) {
         currentPrice,
         shopifyProduct.featuredImage?.url,
         shopifyProduct.onlineStoreUrl,
-        'unassigned',
+        'unprocessed',
         JSON.stringify(customData),
         JSON.stringify(metrics)
       ]

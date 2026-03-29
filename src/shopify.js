@@ -21,12 +21,8 @@ const SHOPIFY_API_URL = `https://${shopName}.myshopify.com/admin/api/${SHOPIFY_A
  * @returns {Promise<Object>} - JSON response from Shopify
  */
 export async function executeQuery(query, variables = {}) {
-  console.log('🔥 SHOPIFY QUERY: Starting query execution');
-  console.log('🔥 SHOPIFY QUERY: Variables:', JSON.stringify(variables, null, 2));
-  console.log('🔥 SHOPIFY QUERY: Query preview:', query.slice(0, 100));
 
   try {
-    console.log(`🔥 SHOPIFY QUERY: Making API request to: ${SHOPIFY_API_URL}`);
 
     if (!shopName || !accessToken) {
       console.error('🚨 SHOPIFY QUERY ERROR: Missing credentials');
@@ -45,8 +41,6 @@ export async function executeQuery(query, variables = {}) {
       })
     });
 
-    console.log('🔥 SHOPIFY QUERY: Response status:', response.status);
-    console.log('🔥 SHOPIFY QUERY: Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -55,14 +49,12 @@ export async function executeQuery(query, variables = {}) {
     }
 
     const data = await response.json();
-    console.log('🔥 SHOPIFY QUERY: Raw response data:', JSON.stringify(data, null, 2));
 
     if (data.errors) {
       console.error('🚨 SHOPIFY QUERY GRAPHQL ERRORS:', data.errors);
       throw new Error(data.errors.map(e => e.message).join(', '));
     }
 
-    console.log('✅ SHOPIFY QUERY SUCCESS: Response processed');
     return data.data;
   } catch (error) {
     console.error('🚨 SHOPIFY QUERY ERROR:', error);
@@ -331,14 +323,12 @@ export async function getShopifyStats() {
       }
     });
 
-    console.log(`Found ${allTags.size} unique tags:`, Array.from(allTags));
 
     // Count products with any tags (non-empty array)
     const taggedProducts = recentProducts.filter(product =>
       product.tags && Array.isArray(product.tags) && product.tags.length > 0
     ).length;
 
-    console.log(`Found ${taggedProducts} products with tags out of ${recentProducts.length} total products`);
 
     // Get counts of specific tags we care about, based on what we found in the test output
     const tagCounts = {
@@ -352,7 +342,6 @@ export async function getShopifyStats() {
       ).length
     };
 
-    console.log('Tag counts:', tagCounts);
 
     return {
       collections: collectionsCount,
@@ -491,10 +480,8 @@ export async function getShopifyActivity(limit = 20) {
  * @returns {Promise<Array>} - Array of matching vendors
  */
 export async function searchVendors(query) {
-  console.log(`[Shopify API] searchVendors called with query: "${query}"`);
 
   if (!query || query.length < 2) {
-    console.log(`[Shopify API] Invalid query length: ${query?.length} chars`);
     throw new Error('Search query must be at least 2 characters long');
   }
 
@@ -515,40 +502,30 @@ export async function searchVendors(query) {
   // No variables needed for this query
   const variables = {};
 
-  console.log(`[Shopify API] Using productVendors query from Shopify Admin API documentation`);
 
-  console.log(`[Shopify API] Constructing GraphQL query with variables:`, variables);
 
   try {
-    console.log(`[Shopify API] Executing GraphQL query to search vendors...`);
 
     // Get first page of products
     const data = await executeQuery(searchQuery, variables);
-    console.log(`[Shopify API] GraphQL query execution complete`);
 
     if (!data) {
-      console.log(`[Shopify API] No data returned from GraphQL query`);
       return [];
     }
 
     if (!data.shop || !data.shop.productVendors || !data.shop.productVendors.edges) {
-      console.log(`[Shopify API] No vendors found in GraphQL response`);
       return [];
     }
 
-    console.log(`[Shopify API] Found ${data.shop.productVendors.edges.length} total vendors`);
 
     // Extract vendors from the results - the node is the vendor name string
     const vendorArray = data.shop.productVendors.edges.map(edge => edge.node);
 
-    console.log(`[Shopify API] Extracted ${vendorArray.length} vendor names from response`);
 
     // Sort the vendors alphabetically
     vendorArray.sort();
-    console.log(`[Shopify API] Found ${vendorArray.length} total unique vendors from current batch`);
 
     // Now we need to filter the vendors based on the search query
-    console.log(`[Shopify API] Filtering for vendors that start with "${query}" (case-insensitive)...`);
 
     // Filter vendors that start with the search query (case-insensitive)
     const lowerQuery = query.toLowerCase();
@@ -557,12 +534,9 @@ export async function searchVendors(query) {
     );
 
     // Log filtered vendors for debugging
-    console.log(`[Shopify API] Filtered down to ${filteredVendors.length} vendors matching "${query}":`);
     filteredVendors.forEach(vendor => {
-      console.log(`[Shopify API]   - ${vendor}`);
     });
 
-    console.log(`[Shopify API] Returning ${filteredVendors.length} filtered vendors`);
     return filteredVendors;
   } catch (error) {
     console.error(`[Shopify API] Error searching for vendors:`, error);
@@ -580,7 +554,6 @@ export async function searchVendors(query) {
  * @returns {Promise<Array>} - Array of products for the vendor with inperson tag
  */
 export async function getProductsByVendor(vendorName) {
-  console.log('🔥 [SHOPIFY] Starting vendor product fetch for:', vendorName);
 
   if (!vendorName) {
     console.error('🚨 [SHOPIFY] Vendor name missing');
@@ -639,11 +612,9 @@ export async function getProductsByVendor(vendorName) {
     query: `vendor:"${vendorName}" AND status:active`
   };
 
-  console.log('🔥 [SHOPIFY] Executing query with variables:', variables);
 
   try {
     const data = await executeQuery(query, variables);
-    console.log('🔥 [SHOPIFY] Raw API response:', JSON.stringify(data, null, 2));
 
     if (!data) {
       console.error('🚨 [SHOPIFY] No data returned');
@@ -655,27 +626,14 @@ export async function getProductsByVendor(vendorName) {
       throw new Error('Invalid response structure from Shopify API');
     }
 
-    console.log(`✅ [SHOPIFY] Found ${data.products.edges.length} products`);
 
     const products = data.products.edges.map(edge => {
       const product = edge.node;
-      console.log('🔥 [SHOPIFY] Processing product:', {
-        id: product.id,
-        title: product.title,
-        priceRangeV2: product.priceRangeV2,
-        variantPrice: product.variants?.edges?.[0]?.node?.price
-      });
 
       // Get price from variant first, fall back to price range
       const price = product.variants?.edges?.[0]?.node?.price ||
                     product.priceRangeV2?.minVariantPrice?.amount;
 
-      console.log('🔥 [SHOPIFY] Extracted price:', {
-        id: product.id,
-        variantPrice: product.variants?.edges?.[0]?.node?.price,
-        priceRangeAmount: product.priceRangeV2?.minVariantPrice?.amount,
-        finalPrice: price
-      });
 
       return {
         ...product,
@@ -683,13 +641,6 @@ export async function getProductsByVendor(vendorName) {
       };
     });
 
-    console.log('✅ [SHOPIFY] Returning processed products:',
-      products.map(p => ({
-        id: p.id,
-        title: p.title,
-        price: p.price
-      }))
-    );
 
     return products;
   } catch (error) {
@@ -706,7 +657,6 @@ export async function getProductsByVendor(vendorName) {
  * @returns {Promise<Object>} - Paginated products and pagination info
  */
 export async function getPaginatedProductsByVendor(vendorName, cursor = null, lightweight = true) {
-  console.log(`[Shopify API] getPaginatedProductsByVendor called for vendor: "${vendorName}", cursor: ${cursor || 'null'}`);
 
   if (!vendorName) {
     throw new Error('Vendor name is required');
@@ -785,7 +735,6 @@ export async function getPaginatedProductsByVendor(vendorName, cursor = null, li
     cursor: cursor
   };
 
-  console.log(`[Shopify API] Executing paginated query for vendor products...`);
   const data = await executeQuery(query, variables);
 
   if (!data || !data.products || !data.products.edges) {
@@ -795,7 +744,6 @@ export async function getPaginatedProductsByVendor(vendorName, cursor = null, li
     };
   }
 
-  console.log(`[Shopify API] Found ${data.products.edges.length} products in current page`);
 
   const products = data.products.edges.map(edge => edge.node);
 
@@ -814,10 +762,8 @@ export async function getPaginatedProductsByVendor(vendorName, cursor = null, li
  * @returns {Promise<Object>} - Product object with formatted data
  */
 export async function getProductById(productId) {
-  console.log(`[Shopify API] getProductById called with ID: "${productId}"`);
 
   if (!productId) {
-    console.log(`[Shopify API] Error: Product ID is missing`);
     throw new Error('Product ID is required');
   }
 
@@ -868,20 +814,15 @@ export async function getProductById(productId) {
     id: gqlId
   };
 
-  console.log(`[Shopify API] Constructing GraphQL query with variables:`, variables);
 
   try {
-    console.log(`[Shopify API] Executing GraphQL query to get product...`);
     const data = await executeQuery(query, variables);
-    console.log(`[Shopify API] GraphQL query execution complete`);
 
     if (!data || !data.product) {
-      console.log(`[Shopify API] No product found with ID: ${productId}`);
       throw new Error(`Product not found with ID: ${productId}`);
     }
 
     const product = data.product;
-    console.log(`[Shopify API] Found product: ${product.title}`);
 
     // Format price if available
     let formattedPrice = 'Price not available';
@@ -902,10 +843,6 @@ export async function getProductById(productId) {
     let imageUrl = null;
     if (product.featuredImage) {
       // Log available image properties for debugging
-      console.log(`[Shopify API] Image properties available for "${product.title}":`);
-      console.log(`[Shopify API]   - featuredImage.url: ${product.featuredImage.url || 'null'}`);
-      console.log(`[Shopify API]   - featuredImage.originalSrc: ${product.featuredImage.originalSrc || 'null'}`);
-      console.log(`[Shopify API]   - featuredImage.transformedSrc: ${product.featuredImage.transformedSrc || 'null'}`);
 
       // Try each in order until we find one
       imageUrl = product.featuredImage.transformedSrc ||
@@ -916,7 +853,6 @@ export async function getProductById(productId) {
     // If no featuredImage, try the first image in the images array
     if (!imageUrl && product.images && product.images.edges && product.images.edges.length > 0) {
       const firstImage = product.images.edges[0].node;
-      console.log(`[Shopify API] Falling back to first image in images array for "${product.title}"`);
       imageUrl = firstImage.transformedSrc || firstImage.originalSrc || firstImage.url;
     }
 
@@ -937,7 +873,6 @@ export async function getProductById(productId) {
       updatedAt: product.updatedAt
     };
 
-    console.log(`[Shopify API] Processed product data for "${product.title}"`);
     return formattedProduct;
   } catch (error) {
     console.error(`[Shopify API] Error getting product with ID "${productId}":`, error);
@@ -951,7 +886,6 @@ export async function getProductById(productId) {
  * @returns {Promise<Array>} - Array of all matching product IDs
  */
 export async function getAllProductIds(vendorFilter = null) {
-  console.log(`[Shopify API] getAllProductIds called with vendorFilter: ${vendorFilter || 'none'}`);
 
   let query = `
     query getProductIds($cursor: String, $limit: Int!) {
@@ -1009,7 +943,6 @@ export async function getAllProductIds(vendorFilter = null) {
       variables.query = queryFilter;
     }
 
-    console.log(`[Shopify API] Fetching batch of product IDs, cursor: ${cursor || 'start'}`);
     const data = await executeQuery(query, variables);
 
     if (!data || !data.products || !data.products.edges) {
@@ -1020,7 +953,6 @@ export async function getAllProductIds(vendorFilter = null) {
     const productIds = data.products.edges.map(edge => edge.node.id);
     allProductIds.push(...productIds);
 
-    console.log(`[Shopify API] Found ${productIds.length} product IDs in batch, total so far: ${allProductIds.length}`);
 
     // Update pagination
     hasNextPage = data.products.pageInfo.hasNextPage;
@@ -1028,13 +960,11 @@ export async function getAllProductIds(vendorFilter = null) {
 
     // Safety break for testing
     if (process.env.NODE_ENV === 'development' && allProductIds.length >= DEV_MAX_PRODUCTS) {
-      console.log(`[Shopify API] Development mode: Stopping after ${DEV_MAX_PRODUCTS} products to prevent excessive API calls`);
       allProductIds.length = DEV_MAX_PRODUCTS;
       break;
     }
   }
 
-  console.log(`[Shopify API] Completed product ID collection: ${allProductIds.length} total IDs`);
   return allProductIds;
 }
 
