@@ -1965,8 +1965,11 @@
     </div>
 
     <div id="debug-panel" class="section" style="margin-top: 30px;">
-      <h3>Debug Panel</h3>
-      <div id="debug-output" style="background: var(--background-color); padding: 10px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-family: monospace; border: 1px solid var(--border-color);"></div>
+      <h3 style="display:flex; align-items:center; gap:10px;">
+        Debug Panel
+        <button id="debug-toggle" onclick="(function(){const o=document.getElementById('debug-output');const b=document.getElementById('debug-toggle');const v=o.style.display==='none';o.style.display=v?'block':'none';b.textContent=v?'Hide':'Show';})()" style="font-size:12px; padding:2px 8px; cursor:pointer;">Show</button>
+      </h3>
+      <div id="debug-output" style="display:none; background: var(--background-color); padding: 10px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-family: monospace; border: 1px solid var(--border-color);"></div>
     </div>
 
     <!-- Add sync results modal -->
