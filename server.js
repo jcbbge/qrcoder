@@ -1244,12 +1244,12 @@ async function handleApiRequest(req, res) {
     const chunks = [];
     req.on('data', chunk => chunks.push(chunk));
     req.on('end', async () => {
+      const receivedAt = Date.now();
       const rawBody = Buffer.concat(chunks);
       const hmacHeader = req.headers['x-shopify-hmac-sha256'];
       const topic = req.headers['x-shopify-topic'];
       const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
-      // Verify HMAC signature
       if (!webhookSecret) {
         console.error('🚨 [WEBHOOK] SHOPIFY_WEBHOOK_SECRET not set');
         res.writeHead(500);
@@ -1263,13 +1263,13 @@ async function handleApiRequest(req, res) {
         .digest('base64');
 
       if (expectedHmac !== hmacHeader) {
-        console.error('🚨 [WEBHOOK] Invalid HMAC — rejected');
+        console.error(`🚨 [WEBHOOK] Invalid HMAC on topic=${topic} — rejected`);
         res.writeHead(401);
         res.end();
         return;
       }
 
-      // Acknowledge immediately — Shopify expects 200 within 5s
+      // Acknowledge immediately — Shopify requires 200 within 5s
       res.writeHead(200);
       res.end();
 
@@ -1277,31 +1277,101 @@ async function handleApiRequest(req, res) {
       try {
         const payload = JSON.parse(rawBody.toString());
         const vendor = payload.vendor;
+        console.log(`📥 [WEBHOOK] Received topic=${topic} vendor="${vendor}" product_id=${payload.id}`);
 
         if (!vendor) {
+          console.warn(`⚠️ [WEBHOOK] No vendor on topic=${topic}, skipping`);
           return;
         }
 
         if (topic === 'products/delete') {
-          // Mark deleted products inactive rather than syncing
           const shopifyId = `gid://shopify/Product/${payload.id}`;
-          await execute(
+          const result = await execute(
             `UPDATE product_cards SET status = 'deleted', updated_at = NOW() WHERE shopify_id = $1`,
             [shopifyId]
           );
-          console.log(`✅ [WEBHOOK] Marked deleted product ${payload.id} (${vendor})`);
+          const duration = Date.now() - receivedAt;
+          console.log(`✅ [WEBHOOK] Deleted product ${payload.id} (${vendor}) — rows affected: ${result.rowCount} [${duration}ms]`);
+          await execute(
+            `INSERT INTO sync_logs (vendor_name, status, summary, details, created_by, duration_ms) VALUES ($1,$2,$3,$4,$5,$6)`,
+            [vendor, 'SUCCESS', `Webhook: product deleted (id=${payload.id})`, JSON.stringify({ topic, shopify_id: payload.id }), 'webhook', duration]
+          );
           return;
         }
 
         if (topic === 'products/create' || topic === 'products/update') {
-          console.log(`🔄 [WEBHOOK] ${topic} — syncing vendor: ${vendor}`);
-          await runSync({ vendorName: vendor, triggeredBy: 'webhook' });
-          console.log(`✅ [WEBHOOK] Sync complete for vendor: ${vendor}`);
+          console.log(`🔄 [WEBHOOK] Triggering sync for vendor="${vendor}" (${topic})`);
+          let syncStatus = 'SUCCESS';
+          let syncSummary = '';
+          try {
+            const syncResult = await runSync({ vendorName: vendor, triggeredBy: 'webhook' });
+            const duration = Date.now() - receivedAt;
+            syncSummary = `Webhook sync: ${syncResult?.totalNewProducts ?? 0} new, ${syncResult?.totalUpdatedProducts ?? 0} updated`;
+            console.log(`✅ [WEBHOOK] Sync complete for vendor="${vendor}" [${duration}ms] — ${syncSummary}`);
+            await execute(
+              `INSERT INTO sync_logs (vendor_name, status, summary, details, created_by, duration_ms) VALUES ($1,$2,$3,$4,$5,$6)`,
+              [vendor, syncStatus, syncSummary, JSON.stringify({ topic, shopify_id: payload.id, result: syncResult }), 'webhook', duration]
+            );
+          } catch (syncErr) {
+            syncStatus = 'FAILED';
+            syncSummary = `Webhook sync failed: ${syncErr.message}`;
+            const duration = Date.now() - receivedAt;
+            console.error(`🚨 [WEBHOOK] Sync failed for vendor="${vendor}":`, syncErr.message);
+            await execute(
+              `INSERT INTO sync_logs (vendor_name, status, summary, details, created_by, duration_ms) VALUES ($1,$2,$3,$4,$5,$6)`,
+              [vendor, syncStatus, syncSummary, JSON.stringify({ topic, error: syncErr.message }), 'webhook', duration]
+            );
+          }
         }
       } catch (err) {
-        console.error('🚨 [WEBHOOK] Error processing payload:', err);
+        console.error('🚨 [WEBHOOK] Error processing payload:', err.message);
       }
     });
+    return;
+  }
+
+  // GET /api/monitor - Traffic and pipeline health dashboard
+  if (baseUrl === '/api/monitor' && req.method === 'GET') {
+    try {
+      const urlObj = new URL(req.url, `http://${req.headers.host}`);
+      const limit = parseInt(urlObj.searchParams.get('limit') || '20', 10);
+
+      const [cardCount, pageCount, queueCount, recentLogs, webhookLogs] = await Promise.all([
+        execute('SELECT count(*) FROM product_cards WHERE status != $1', ['deleted']),
+        execute('SELECT count(*) FROM pages'),
+        execute('SELECT count(*) FROM queues'),
+        execute(
+          `SELECT vendor_name, status, summary, created_by, duration_ms, run_at
+           FROM sync_logs ORDER BY run_at DESC LIMIT $1`,
+          [limit]
+        ),
+        execute(
+          `SELECT vendor_name, status, summary, duration_ms, run_at
+           FROM sync_logs WHERE created_by = 'webhook' ORDER BY run_at DESC LIMIT 10`
+        ),
+      ]);
+
+      const statusCounts = await execute(
+        `SELECT status, count(*) FROM sync_logs GROUP BY status`
+      );
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        db: {
+          product_cards: parseInt(cardCount.rows[0].count),
+          pages: parseInt(pageCount.rows[0].count),
+          queues: parseInt(queueCount.rows[0].count),
+        },
+        sync_summary: Object.fromEntries(statusCounts.rows.map(r => [r.status, parseInt(r.count)])),
+        recent_activity: recentLogs.rows,
+        webhook_events: webhookLogs.rows,
+        server_time: new Date().toISOString(),
+      }));
+    } catch (err) {
+      console.error('🚨 [MONITOR] Error:', err.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
     return;
   }
 
