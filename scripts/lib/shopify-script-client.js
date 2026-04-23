@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 // --- Load Shopify credentials ---
 const shopName = process.env.SHOPIFY_SHOP_NAME;
 const accessToken = process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
-const SHOPIFY_API_URL = `https://${shopName}.myshopify.com/admin/api/2023-10/graphql.json`;
+const SHOPIFY_API_URL = `https://${shopName}.myshopify.com/admin/api/2026-04/graphql.json`;
 
 // Basic check for credentials
 if (!shopName || !accessToken) {

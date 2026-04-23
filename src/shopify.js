@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 // Load Shopify credentials from environment variables
 const shopName = process.env.SHOPIFY_SHOP_NAME;
 const accessToken = process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
-const SHOPIFY_API_VERSION = '2023-10';
+const SHOPIFY_API_VERSION = '2026-04';
 
 // Check if credentials are set
 if (!shopName || !accessToken) {
