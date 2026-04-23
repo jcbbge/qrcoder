@@ -214,6 +214,10 @@
 
     // Refresh logs periodically
     setInterval(updateTodayLogs, 30000); // Every 30 seconds
+
+    // Real-time: refresh immediately when a webhook sync completes
+    const events = new EventSource('/api/events');
+    events.onmessage = () => updateTodayLogs();
   </script>
 </body>
 </html>

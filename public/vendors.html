@@ -2074,6 +2074,17 @@
 
     // Refresh logs periodically
     setInterval(updateTodayLogs, 30000); // Every 30 seconds
+
+    // Real-time: refresh when a webhook sync completes
+    const events = new EventSource('/api/events');
+    events.onmessage = (e) => {
+      const { vendor } = JSON.parse(e.data);
+      updateTodayLogs();
+      if (vendor && vendor === selectedVendorName) {
+        loadVendorProducts(selectedVendorName);
+        searchQueuesByVendor(selectedVendorName);
+      }
+    };
   </script>
 </body>
 </html>

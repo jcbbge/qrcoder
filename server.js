@@ -19,6 +19,15 @@ import QRCode from 'qrcode';
 // Import the new sync function
 import { runSync } from './scripts/sync-vendor-pages-webapp.js';
 
+// SSE clients — broadcast sync_complete to all connected browsers
+const sseClients = new Set();
+function broadcastSync(vendor) {
+  const data = `data: ${JSON.stringify({ vendor })}\n\n`;
+  for (const client of sseClients) {
+    try { client.write(data); } catch { sseClients.delete(client); }
+  }
+}
+
 // Setup path resolution for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1236,6 +1245,19 @@ async function handleApiRequest(req, res) {
     return;
   }
 
+  // GET /api/events - SSE stream for real-time sync notifications
+  if (baseUrl === '/api/events' && req.method === 'GET') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+    res.write('data: {"connected":true}\n\n');
+    sseClients.add(res);
+    req.on('close', () => sseClients.delete(res));
+    return;
+  }
+
   // POST /api/webhooks/shopify - Receive Shopify product webhooks
   if (baseUrl === '/api/webhooks/shopify' && req.method === 'POST') {
     const chunks = [];
@@ -1293,6 +1315,7 @@ async function handleApiRequest(req, res) {
             `INSERT INTO sync_logs (vendor_name, status, summary, details, created_by, duration_ms) VALUES ($1,$2,$3,$4,$5,$6)`,
             [vendor, 'SUCCESS', `Webhook: product deleted (id=${payload.id})`, JSON.stringify({ topic, shopify_id: payload.id }), 'webhook', duration]
           );
+          broadcastSync(vendor);
           return;
         }
 
@@ -1309,6 +1332,7 @@ async function handleApiRequest(req, res) {
               `INSERT INTO sync_logs (vendor_name, status, summary, details, created_by, duration_ms) VALUES ($1,$2,$3,$4,$5,$6)`,
               [vendor, syncStatus, syncSummary, JSON.stringify({ topic, shopify_id: payload.id, result: syncResult }), 'webhook', duration]
             );
+            broadcastSync(vendor);
           } catch (syncErr) {
             syncStatus = 'FAILED';
             syncSummary = `Webhook sync failed: ${syncErr.message}`;
