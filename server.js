@@ -848,10 +848,11 @@ async function handleApiRequest(req, res) {
     });
 
     req.on('end', async () => {
+      let vendorName;
       try {
         console.log('🔥 [SERVER] Request body received:', body);
         const data = JSON.parse(body);
-        const vendorName = data.vendorName;
+        vendorName = data.vendorName;
 
         if (!vendorName) {
           console.error('🚨 [SERVER] Vendor name missing in request body');

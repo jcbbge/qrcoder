@@ -59,7 +59,7 @@ export async function query(text, params = []) {
     console.log(`[Neon] DB query OK (rows: ${res.rowCount}, time: ${duration}ms)`);
     return res;
   } catch (error) {
-    console.error('[Neon] Error executing query:', { text });
+    console.error('[Neon] Error executing query:', error.message, '| query:', text.substring(0, 100));
     throw error;
   }
 }
