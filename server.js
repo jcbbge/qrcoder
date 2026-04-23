@@ -10,6 +10,7 @@ import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { productCards, pages, queues, execute } from './src/db.js';
 import * as shopify from './src/shopify.js';
@@ -1233,6 +1234,72 @@ async function handleApiRequest(req, res) {
         console.error(`🚨 [API PUT /api/pages/${pageId}] Error processing request:`, error);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: error.message || 'Internal server error' }));
+      }
+    });
+    return;
+  }
+
+  // POST /api/webhooks/shopify - Receive Shopify product webhooks
+  if (baseUrl === '/api/webhooks/shopify' && req.method === 'POST') {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', async () => {
+      const rawBody = Buffer.concat(chunks);
+      const hmacHeader = req.headers['x-shopify-hmac-sha256'];
+      const topic = req.headers['x-shopify-topic'];
+      const webhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET;
+
+      // Verify HMAC signature
+      if (!webhookSecret) {
+        console.error('🚨 [WEBHOOK] SHOPIFY_WEBHOOK_SECRET not set');
+        res.writeHead(500);
+        res.end();
+        return;
+      }
+
+      const expectedHmac = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(rawBody)
+        .digest('base64');
+
+      if (expectedHmac !== hmacHeader) {
+        console.error('🚨 [WEBHOOK] Invalid HMAC — rejected');
+        res.writeHead(401);
+        res.end();
+        return;
+      }
+
+      // Acknowledge immediately — Shopify expects 200 within 5s
+      res.writeHead(200);
+      res.end();
+
+      // Process async after responding
+      try {
+        const payload = JSON.parse(rawBody.toString());
+        const vendor = payload.vendor;
+
+        if (!vendor) {
+          return;
+        }
+
+        if (topic === 'products/delete') {
+          // Mark deleted products inactive rather than syncing
+          const shopifyId = `gid://shopify/Product/${payload.id}`;
+          await execute(
+            `UPDATE product_cards SET status = 'deleted', updated_at = NOW() WHERE shopify_id = $1`,
+            [shopifyId]
+          );
+          console.log(`✅ [WEBHOOK] Marked deleted product ${payload.id} (${vendor})`);
+          return;
+        }
+
+        if (topic === 'products/create' || topic === 'products/update') {
+          console.log(`🔄 [WEBHOOK] ${topic} — syncing vendor: ${vendor}`);
+          await runSync({ vendorName: vendor, triggeredBy: 'webhook' });
+          console.log(`✅ [WEBHOOK] Sync complete for vendor: ${vendor}`);
+        }
+      } catch (err) {
+        console.error('🚨 [WEBHOOK] Error processing payload:', err);
       }
     });
     return;
