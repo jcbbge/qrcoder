@@ -751,9 +751,6 @@
             debugLog(`  - shopify_id: ${card.shopify_id || 'MISSING'}`);
             debugLog(`  - product_name: ${card.product_name}`);
 
-            // Format the product name for the URL path - THE ONLY CORRECT WAY
-            let productUrlPath = card.product_name.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
-            debugLog(`Created URL path from product_name: ${productUrlPath}`);
 
             cards.push({
               id: card.id,
