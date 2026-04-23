@@ -6,21 +6,18 @@
  * data for the QR code generation frontend.
  */
 
+import 'dotenv/config';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import crypto from 'crypto';
-import dotenv from 'dotenv';
 import { productCards, pages, queues, execute } from './src/db.js';
 import * as shopify from './src/shopify.js';
 import QRCode from 'qrcode';
 
 // Import the new sync function
 import { runSync } from './scripts/sync-vendor-pages-webapp.js';
-
-// Load environment variables
-dotenv.config();
 
 // Setup path resolution for ES modules
 const __filename = fileURLToPath(import.meta.url);
